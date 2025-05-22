@@ -117,13 +117,13 @@ local MAIN_FONT = Enum.Font.ArimoBold
 local SPECIAL_FONT = Enum.Font.FredokaOne
 
 -- Тексты интерфейса
-local TEXT_TITLE = "John 2.0[EASTER🥚]"
+local TEXT_TITLE = "John 2.1 🥚"
 local TEXT_MINIMIZE = "-"
 local TEXT_CLOSE = "X"
-local TEXT_AUTO_EGG = "Egg Farm [🥚]"
-local TEXT_AUTO_COINS = "Coin Farm [💵]"
-local TEXT_AUTO_BOTH = "Coin & Egg Farm [👩🏿‍🌾]"
-local TEXT_AUTO_RARE = "Rare Egg Farm [💎]"
+local TEXT_AUTO_EGG = "Egg Farm - 🥚"
+local TEXT_AUTO_COINS = "Coin Farm - 💵"
+local TEXT_AUTO_BOTH = "Coin & Egg Farm - 👩🏿‍🌾"
+local TEXT_AUTO_RARE = "Rare Egg Farm - 💎"
 local TEXT_RARE_EGG_NOTE = "Maybe little bugs with egg which you have"
 
 -- Размеры текста
