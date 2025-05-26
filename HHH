@@ -1,327 +1,149 @@
--- Проверка на уже запущенный скрипт
-if _G.MM2UltimateScriptIsLoaded then return end
-_G.MM2UltimateScriptIsLoaded = true
+-- JohnAim Ultimate Script v2.0
+-- [Murder Mystery 2] Aimbot + Auto Gun + ESP
 
--- MM2 Ultimate Script v1.1
--- Включает: ESP, Auto Gun, Aimbot
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- Глобальная блокировка
-_G.IsLoading = true
-
--- ========== ЭКРАН ЗАГРУЗКИ ==========
-local function ShowLoadingScreen()
-    for _, gui in ipairs(game.CoreGui:GetChildren()) do
-        if gui.Name:find("LoadingScreen_") then
-            gui:Destroy()
-        end
-    end
-
-    local LoadingGui = Instance.new("ScreenGui")
-    LoadingGui.Name = "LoadingScreen_"..math.random(1, 9999)
-    LoadingGui.Parent = game.CoreGui
-    LoadingGui.ResetOnSpawn = false
-
-    local LoadingFrame = Instance.new("Frame")
-    LoadingFrame.Name = "LoadingFrame"
-    LoadingFrame.Size = UDim2.new(0, 300, 0, 150)
-    LoadingFrame.AnchorPoint = Vector2.new(1, 0)
-    LoadingFrame.Position = UDim2.new(1, -10, 0, 10)
-    LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    LoadingFrame.BackgroundTransparency = 0.03
-    LoadingFrame.BorderSizePixel = 0
-    LoadingFrame.Parent = LoadingGui
-
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Thickness = 2
-    UIStroke.Color = Color3.fromRGB(100, 100, 100)
-    UIStroke.Transparency = 0.5
-    UIStroke.Parent = LoadingFrame
-
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = LoadingFrame
-
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Position = UDim2.new(0, 0, 0, 10)
-    Title.BackgroundTransparency = 1
-    Title.Text = "MM2 Ultimate"
-    Title.TextColor3 = Color3.fromRGB(170, 0, 255)
-    Title.Font = Enum.Font.ArimoBold
-    Title.TextSize = 24
-    Title.Parent = LoadingFrame
-
-    local PercentText = Instance.new("TextLabel")
-    PercentText.Name = "PercentText"
-    PercentText.Size = UDim2.new(1, 0, 0, 40)
-    PercentText.Position = UDim2.new(0, 0, 0, 50)
-    PercentText.BackgroundTransparency = 1
-    PercentText.Text = "0%"
-    PercentText.TextColor3 = Color3.fromRGB(170, 0, 255)
-    PercentText.Font = Enum.Font.LuckiestGuy
-    PercentText.TextSize = 30
-    PercentText.Parent = LoadingFrame
-
-    local LoadingText = Instance.new("TextLabel")
-    LoadingText.Name = "LoadingText"
-    LoadingText.Size = UDim2.new(1, 0, 0, 20)
-    LoadingText.Position = UDim2.new(0, 0, 0, 90)
-    LoadingText.BackgroundTransparency = 1
-    LoadingText.Text = "LOADING"
-    LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    LoadingText.Font = Enum.Font.LuckiestGuy
-    LoadingText.TextSize = 14
-    LoadingText.Parent = LoadingFrame
-
-    local startTime = tick()
-    local duration = 20
-    
-    while tick() < startTime + duration do
-        local elapsed = tick() - startTime
-        local progress = math.min(elapsed / duration, 1)
-        PercentText.Text = math.floor(progress * 100) .. "%"
-        task.wait(0.05)
-    end
-    
-    LoadingGui:Destroy()
-    _G.IsLoading = false
-end
-
--- ========== ОСНОВНЫЕ НАСТРОЙКИ ==========
+-- Цвета из john2
 local BLACK_MAIN = Color3.fromRGB(25, 25, 25)
-local BLACK_MAIN_TRANSPARENCY = 0.03
 local PURPLE_ACCENT = Color3.fromRGB(170, 0, 255)
-local PURPLE_ACCENT_TRANSPARENCY = 0
 local WHITE_TEXT = Color3.fromRGB(255, 255, 255)
-local PURPLE_HEADER = Color3.fromRGB(170, 0, 255)
 local DARK_GRAY_HEADER = Color3.fromRGB(40, 40, 40)
-local DARK_GRAY_HEADER_TRANSPARENCY = 0
 local RED_CLOSE = Color3.fromRGB(255, 80, 80)
 local GRAY_NOTE = Color3.fromRGB(170, 170, 170)
 
+-- Шрифты из john2
 local MAIN_FONT = Enum.Font.ArimoBold
 local SPECIAL_FONT = Enum.Font.FredokaOne
 
-local TEXT_TITLE = "MM2 Ultimate"
-local TEXT_MINIMIZE = "-"
-local TEXT_CLOSE = "X"
-local TEXT_ESP = "ESP - 👁️"
-local TEXT_AUTO_GUN = "Auto Gun - 🔫"
-local TEXT_AIMBOT = "Aimbot - 🎯"
-
-local TEXT_SIZE_TITLE = 18
-local TEXT_SIZE_BUTTON = 14
-local TEXT_SIZE_NOTE = 10
-
-local Player = game.Players.LocalPlayer
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local ESPEnabled = false
-local AutoGunEnabled = false
-local AimbotEnabled = false
-local MainGUI = nil
-local Murder = nil
-local Sheriff = nil
-local Hero = nil
+-- Состояния
 local roles = {}
-local RoundActive = false
+local Murder, Sheriff, Hero
+local ESPEnabled = true
+local AutoGetGun = { Enabled = false, CollectDistance = 5000 }
+local MainGUI, ShootGUI
 
--- ========== ИГРОВЫЕ СОБЫТИЯ ==========
-local function SetupGameEvents()
-    -- Получаем события начала и конца раунда
-    local roundStartEvent = ReplicatedStorage:FindFirstChild("RoundStart", true)
-    local roundEndEvent = ReplicatedStorage:FindFirstChild("RoundEnd", true) or ReplicatedStorage:FindFirstChild("RoundEndFade", true)
-
-    if roundStartEvent then
-        roundStartEvent.OnClientEvent:Connect(function()
-            RoundActive = true
-        end)
+-- Функции ESP
+local function IsAlive(Player)
+    for i, v in pairs(roles) do
+        if Player.Name == i then
+            return not v.Killed and not v.Dead
+        end
     end
-
-    if roundEndEvent then
-        roundEndEvent.OnClientEvent:Connect(function()
-            RoundActive = false
-        end)
-    end
+    return false
 end
 
--- ========== ESP ФУНКЦИИ ==========
 local function CreateHighlight()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Player and player.Character and not player.Character:FindFirstChild("Highlight") then
+    if not ESPEnabled then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and not player.Character:FindFirstChild("Highlight") then
             local highlight = Instance.new("Highlight")
-            highlight.Name = "Highlight"
             highlight.Parent = player.Character
+            highlight.OutlineTransparency = 0.5
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         end
     end
 end
 
 local function UpdateHighlights()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Player and player.Character and player.Character:FindFirstChild("Highlight") then
-            local highlight = player.Character:FindFirstChild("Highlight")
-            
-            if player.Name == Murder then
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            elseif player.Name == Sheriff then
-                highlight.FillColor = Color3.fromRGB(0, 0, 255)
-            elseif player.Name == Hero then
-                highlight.FillColor = Color3.fromRGB(255, 255, 0)
+    if not ESPEnabled then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Highlight") then
+            local Highlight = player.Character:FindFirstChild("Highlight")
+            if player.Name == Sheriff and IsAlive(player) then
+                Highlight.FillColor = Color3.fromRGB(0, 0, 225) -- Синий для шерифа
+                Highlight.OutlineColor = Color3.fromRGB(0, 0, 150)
+            elseif player.Name == Murder and IsAlive(player) then
+                Highlight.FillColor = Color3.fromRGB(225, 0, 0) -- Красный для убийцы
+                Highlight.OutlineColor = Color3.fromRGB(150, 0, 0)
+            elseif player.Name == Hero and IsAlive(player) and not IsAlive(Players[Sheriff]) then
+                Highlight.FillColor = Color3.fromRGB(255, 250, 0) -- Желтый для героя
+                Highlight.OutlineColor = Color3.fromRGB(200, 200, 0)
             else
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                Highlight.FillColor = Color3.fromRGB(0, 225, 0) -- Зеленый для всех остальных
+                Highlight.OutlineColor = Color3.fromRGB(0, 150, 0)
             end
         end
     end
 end
 
-local function ESPLoop()
-    while ESPEnabled do
-        roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
-        for name, data in pairs(roles) do
-            if data.Role == "Murderer" then
-                Murder = name
-            elseif data.Role == 'Sheriff' then
-                Sheriff = name
-            elseif data.Role == 'Hero' then
-                Hero = name
-            end
-        end
-        
-        CreateHighlight()
-        UpdateHighlights()
-        task.wait(1)
-    end
-end
-
--- ========== AUTO GUN ФУНКЦИИ ==========
+-- Функции Auto Gun
 local function isMurderer()
-    local char = Player.Character
+    local char = LocalPlayer.Character
     if not char then return false end
-    return char:FindFirstChild("Knife") or Player.Backpack:FindFirstChild("Knife")
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name == "Knife" then
+            return true
+        end
+    end
+    return false
 end
 
 local function getNearestGun()
-    local char = Player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
-    local root = char.HumanoidRootPart
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
 
-    local closestGun, closestDist = nil, 5000
-    for _, item in ipairs(workspace:GetDescendants()) do
-        if item.Name == "GunDrop" and item:IsA("BasePart") then
-            local dist = (root.Position - item.Position).Magnitude
-            if dist < closestDist then
-                closestGun, closestDist = item, dist
+    local closestGun, closestDist = nil, AutoGetGun.CollectDistance
+    for _, item in ipairs(Workspace:GetDescendants()) do
+        if item.Name == "GunDrop" then
+            local success, pos = pcall(function() return item:GetPivot().Position end)
+            if success then
+                local dist = (root.Position - pos).Magnitude
+                if dist < closestDist then
+                    closestGun, closestDist = item, dist
+                end
             end
         end
     end
     return closestGun
 end
 
-local function autoGetGunLoop()
-    while AutoGunEnabled do
-        if RoundActive and not isMurderer() then
-            local char = Player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local gun = getNearestGun()
-                if gun then
-                    local root = char.HumanoidRootPart
-                    local originalPos = root.CFrame
-                    
-                    -- Телепортируемся к пушке
-                    root.CFrame = CFrame.new(gun.Position + Vector3.new(0, 2, 0))
-                    
-                    -- Ждем пока подберется или 2 секунды
-                    local timeout = tick() + 2
-                    while gun.Parent and tick() < timeout do
-                        task.wait(0.1)
-                    end
-                    
-                    -- Возвращаемся на место
-                    root.CFrame = originalPos
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end
-
--- ========== AIMBOT ФУНКЦИИ ==========
-local function shootAtMurderer()
-    if not RoundActive then return end
-    
-    local char = Player.Character
+local function teleportToGunAndBack()
+    if isMurderer() then return end
+    local char = LocalPlayer.Character
     if not char then return end
-    
-    local gun = char:FindFirstChild("Gun") or Player.Backpack:FindFirstChild("Gun")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local gun = getNearestGun()
     if not gun then return end
 
-    -- Экипируем пушку
-    char:WaitForChild("Humanoid"):EquipTool(gun)
-    task.wait(0.2)
+    local originalCFrame = root.CFrame
+    root.CFrame = CFrame.new(gun:GetPivot().Position + Vector3.new(0, 2, 0))
 
-    -- Ищем маньяка
-    local murderer = nil
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Player and player.Character then
-            local knife = player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
-            if knife then
-                murderer = player
-                break
-            end
-        end
+    local timeout = tick() + 2
+    while gun:IsDescendantOf(Workspace) and tick() < timeout do
+        task.wait(0.1)
     end
 
-    if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetChar = murderer.Character
-        local targetPos = targetChar.HumanoidRootPart.Position
-        local targetVel = targetChar.HumanoidRootPart.Velocity
-
-        local bulletSpeed = 300
-        local distance = (targetPos - char.HumanoidRootPart.Position).Magnitude
-        local leadPos = targetPos + (targetVel * (distance / bulletSpeed))
-
-        pcall(function()
-            local gunRemote = workspace:WaitForChild(Player.Name):WaitForChild("Gun")
-                :WaitForChild("KnifeLocal"):WaitForChild("CreateBeam"):WaitForChild("RemoteFunction")
-            gunRemote:InvokeServer(1, leadPos, "AH2")
-        end)
-    end
+    root.CFrame = originalCFrame
 end
 
-local function aimbotLoop()
-    while AimbotEnabled do
-        if RoundActive and Player:GetAttribute("Alive") then
-            shootAtMurderer()
-        end
-        task.wait(0.5)
-    end
-end
-
--- ========== GUI ФУНКЦИИ ==========
+-- Функция создания основного GUI
 local function CreateMainGUI()
-    if MainGUI then
-        MainGUI:Destroy()
-        MainGUI = nil
-    end
+    if MainGUI then MainGUI:Destroy() end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "MM2UltimateScript"
-    ScreenGui.Parent = game.CoreGui
+    ScreenGui.Name = "JohnAimGUI"
     ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     MainGUI = ScreenGui
 
+    -- Основное окно
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 300, 0, 220)
-    MainFrame.AnchorPoint = Vector2.new(1, 0)
-    MainFrame.Position = UDim2.new(1, -10, 0, 10)
+    MainFrame.Size = UDim2.new(0, 160, 0, 120)
+    MainFrame.Position = UDim2.new(0.5, -80, 0.5, -60)
     MainFrame.BackgroundColor3 = BLACK_MAIN
-    MainFrame.BackgroundTransparency = BLACK_MAIN_TRANSPARENCY
+    MainFrame.BackgroundTransparency = 0.03
     MainFrame.BorderSizePixel = 0
     MainFrame.Parent = ScreenGui
 
@@ -341,7 +163,7 @@ local function CreateMainGUI()
     TitleBar.Size = UDim2.new(1, 0, 0, 30)
     TitleBar.Position = UDim2.new(0, 0, 0, 0)
     TitleBar.BackgroundColor3 = DARK_GRAY_HEADER
-    TitleBar.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+    TitleBar.BackgroundTransparency = 0
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = MainFrame
 
@@ -351,27 +173,27 @@ local function CreateMainGUI()
 
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
+    Title.Text = "JohnAim"
     Title.Size = UDim2.new(0.7, 0, 1, 0)
     Title.Position = UDim2.new(0.05, 0, 0, 0)
     Title.BackgroundTransparency = 1
-    Title.Text = TEXT_TITLE
-    Title.TextColor3 = PURPLE_HEADER
+    Title.TextColor3 = PURPLE_ACCENT
     Title.Font = MAIN_FONT
-    Title.TextSize = TEXT_SIZE_TITLE
+    Title.TextSize = 14
     Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.TextYAlignment = Enum.TextYAlignment.Center
     Title.Parent = TitleBar
 
+    -- Кнопки управления окном
     local MinimizeButton = Instance.new("TextButton")
     MinimizeButton.Name = "MinimizeButton"
     MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
     MinimizeButton.Position = UDim2.new(1, -60, 0, 0)
     MinimizeButton.BackgroundColor3 = DARK_GRAY_HEADER
-    MinimizeButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-    MinimizeButton.Text = TEXT_MINIMIZE
+    MinimizeButton.BackgroundTransparency = 0
+    MinimizeButton.Text = "-"
     MinimizeButton.TextColor3 = WHITE_TEXT
     MinimizeButton.Font = SPECIAL_FONT
-    MinimizeButton.TextSize = TEXT_SIZE_TITLE
+    MinimizeButton.TextSize = 14
     MinimizeButton.TextYAlignment = Enum.TextYAlignment.Center
     MinimizeButton.Parent = TitleBar
 
@@ -384,11 +206,11 @@ local function CreateMainGUI()
     CloseButton.Size = UDim2.new(0, 30, 0, 30)
     CloseButton.Position = UDim2.new(1, -30, 0, 0)
     CloseButton.BackgroundColor3 = DARK_GRAY_HEADER
-    CloseButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-    CloseButton.Text = TEXT_CLOSE
+    CloseButton.BackgroundTransparency = 0
+    CloseButton.Text = "X"
     CloseButton.TextColor3 = RED_CLOSE
     CloseButton.Font = SPECIAL_FONT
-    CloseButton.TextSize = TEXT_SIZE_TITLE
+    CloseButton.TextSize = 14
     CloseButton.TextYAlignment = Enum.TextYAlignment.Center
     CloseButton.Parent = TitleBar
 
@@ -396,41 +218,77 @@ local function CreateMainGUI()
     CloseCorner.CornerRadius = UDim.new(0, 12)
     CloseCorner.Parent = CloseButton
 
-    -- Функции управления GUI
-    local isMinimized = false
-    local originalSize = MainFrame.Size
-    local minimizedSize = UDim2.new(0, 300, 0, 30)
-    local childrenVisibility = {}
+    -- Кнопки функций
+    local buttonHeight = 30
+    local buttonSpacing = 5
+    local currentY = 35
 
-    local function ToggleMinimize()
-        isMinimized = not isMinimized
-        if isMinimized then
-            for _, child in ipairs(MainFrame:GetChildren()) do
-                if child ~= TitleBar and child ~= UICorner and child ~= UIStroke then
-                    childrenVisibility[child] = child.Visible
-                    child.Visible = false
-                end
-            end
-            MainFrame.Size = minimizedSize
-        else
-            MainFrame.Size = originalSize
-            for child, visible in pairs(childrenVisibility) do
-                child.Visible = visible
-            end
-            childrenVisibility = {}
-        end
+    local function CreateButton(name, text, yPos, callback)
+        local button = Instance.new("TextButton")
+        button.Name = name
+        button.Size = UDim2.new(0.9, 0, 0, buttonHeight)
+        button.Position = UDim2.new(0.05, 0, 0, yPos)
+        button.BackgroundColor3 = DARK_GRAY_HEADER
+        button.BackgroundTransparency = 0
+        button.Text = text
+        button.TextColor3 = WHITE_TEXT
+        button.Font = MAIN_FONT
+        button.TextSize = 12
+        button.Parent = MainFrame
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = button
+        
+        button.MouseButton1Click:Connect(function()
+            callback(button)
+        end)
+        
+        return button
     end
 
-    MinimizeButton.MouseButton1Click:Connect(ToggleMinimize)
+    -- Auto Get Gun Toggle
+    local AutoGunButton = CreateButton("AutoGunButton", "AUTO GUN: OFF", currentY, function(btn)
+        AutoGetGun.Enabled = not AutoGetGun.Enabled
+        btn.Text = "AUTO GUN: " .. (AutoGetGun.Enabled and "ON" or "OFF")
+        btn.BackgroundColor3 = AutoGetGun.Enabled and PURPLE_ACCENT or DARK_GRAY_HEADER
+        
+        if AutoGetGun.Enabled then
+            spawn(function()
+                while AutoGetGun.Enabled do
+                    teleportToGunAndBack()
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end)
 
-    -- Перемещение GUI
-    local dragging = false
-    local dragInput, dragStart, startPos
+    currentY = currentY + buttonHeight + buttonSpacing
+
+    -- ESP Toggle
+    local ESPButton = CreateButton("ESPButton", "ESP: ON", currentY, function(btn)
+        ESPEnabled = not ESPEnabled
+        btn.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+        btn.BackgroundColor3 = ESPEnabled and PURPLE_ACCENT or DARK_GRAY_HEADER
+        
+        if not ESPEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local highlight = player.Character:FindFirstChild("Highlight")
+                    if highlight then
+                        highlight:Destroy()
+                    end
+                end
+            end
+        end
+    end)
+
+    -- Перемещение MainFrame
+    local dragging, dragStart, startPos
 
     local function update(input)
         local delta = input.Position - dragStart
-        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        MainFrame.Position = newPos
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 
     TitleBar.InputBegan:Connect(function(input)
@@ -447,148 +305,226 @@ local function CreateMainGUI()
         end
     end)
 
-    TitleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             update(input)
         end
     end)
 
-    -- Создание кнопок
-    local buttonHeight = 35
-    local buttonSpacing = 8
-    local currentY = 35
-
-    local function CreateButton(name, text, yPos, callback)
-        local button = Instance.new("TextButton")
-        button.Name = name
-        button.Size = UDim2.new(0.8, 0, 0, buttonHeight)
-        button.Position = UDim2.new(0.1, 0, 0, yPos)
-        button.BackgroundColor3 = DARK_GRAY_HEADER
-        button.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
-        button.Text = text..": OFF"
-        button.TextColor3 = WHITE_TEXT
-        button.Font = MAIN_FONT
-        button.TextSize = TEXT_SIZE_BUTTON
-        button.TextYAlignment = Enum.TextYAlignment.Center
-        button.Parent = MainFrame
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 8)
-        corner.Parent = button
-        
-        button.MouseButton1Click:Connect(function()
-            if _G.IsLoading then return end
-            callback(button)
-        end)
-        return button
-    end
-
-    -- Кнопка ESP
-    local espBtn = CreateButton("ESP_TOGGLE", TEXT_ESP, currentY, function(btn)
-        ESPEnabled = not ESPEnabled
-        btn.Text = TEXT_ESP..(ESPEnabled and ": ON" or ": OFF")
-        btn.BackgroundColor3 = ESPEnabled and PURPLE_ACCENT or DARK_GRAY_HEADER
-        btn.BackgroundTransparency = ESPEnabled and PURPLE_ACCENT_TRANSPARENCY or DARK_GRAY_HEADER_TRANSPARENCY
-        
-        if ESPEnabled then
-            spawn(ESPLoop)
-        else
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= Player and player.Character and player.Character:FindFirstChild("Highlight") then
-                    player.Character:FindFirstChild("Highlight"):Destroy()
+    -- Сворачивание окна
+    local isMinimized = false
+    MinimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            MainFrame.Size = UDim2.new(0, 160, 0, 30)
+            for _, child in pairs(MainFrame:GetChildren()) do
+                if child ~= TitleBar and child ~= UIStroke and child ~= UICorner then
+                    child.Visible = false
                 end
             end
-        end
-    end)
-    currentY = currentY + buttonHeight + buttonSpacing
-
-    -- Кнопка Auto Gun
-    local autoGunBtn = CreateButton("AUTO_GUN_TOGGLE", TEXT_AUTO_GUN, currentY, function(btn)
-        AutoGunEnabled = not AutoGunEnabled
-        btn.Text = TEXT_AUTO_GUN..(AutoGunEnabled and ": ON" or ": OFF")
-        btn.BackgroundColor3 = AutoGunEnabled and PURPLE_ACCENT or DARK_GRAY_HEADER
-        btn.BackgroundTransparency = AutoGunEnabled and PURPLE_ACCENT_TRANSPARENCY or DARK_GRAY_HEADER_TRANSPARENCY
-        
-        if AutoGunEnabled then
-            spawn(autoGetGunLoop)
-        end
-    end)
-    currentY = currentY + buttonHeight + buttonSpacing
-
-    -- Кнопка Aimbot
-    local aimbotBtn = CreateButton("AIMBOT_TOGGLE", TEXT_AIMBOT, currentY, function(btn)
-        AimbotEnabled = not AimbotEnabled
-        btn.Text = TEXT_AIMBOT..(AimbotEnabled and ": ON" or ": OFF")
-        btn.BackgroundColor3 = AimbotEnabled and PURPLE_ACCENT or DARK_GRAY_HEADER
-        btn.BackgroundTransparency = AimbotEnabled and PURPLE_ACCENT_TRANSPARENCY or DARK_GRAY_HEADER_TRANSPARENCY
-        
-        if AimbotEnabled then
-            spawn(aimbotLoop)
-        end
-    end)
-
-    -- Закрытие GUI
-    CloseButton.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-        _G.MM2UltimateScriptIsLoaded = false
-        _G.IsLoading = nil
-        MainGUI = nil
-        
-        -- Отключаем все функции при закрытии
-        ESPEnabled = false
-        AutoGunEnabled = false
-        AimbotEnabled = false
-        
-        -- Удаляем все Highlight
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= Player and player.Character and player.Character:FindFirstChild("Highlight") then
-                player.Character:FindFirstChild("Highlight"):Destroy()
+        else
+            MainFrame.Size = UDim2.new(0, 160, 0, 120)
+            for _, child in pairs(MainFrame:GetChildren()) do
+                child.Visible = true
             end
         end
+    end)
+
+    -- Закрытие окна
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        MainGUI = nil
     end)
 
     return ScreenGui
 end
 
--- ========== ЗАПУСК СИСТЕМЫ ==========
-spawn(ShowLoadingScreen)
+-- Функция создания Shoot GUI
+local function CreateShootGUI()
+    if ShootGUI then ShootGUI:Destroy() end
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-task.wait(3)
+    local ShootScreenGui = Instance.new("ScreenGui")
+    ShootScreenGui.Name = "JohnAimShootGUI"
+    ShootScreenGui.ResetOnSpawn = false
+    ShootScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ShootGUI = ShootScreenGui
 
--- Настраиваем игровые события
-SetupGameEvents()
+    -- Основной контейнер
+    local ShootContainer = Instance.new("Frame")
+    ShootContainer.Name = "ShootContainer"
+    ShootContainer.Size = UDim2.new(0, 70, 0, 70) -- Квадратная кнопка
+    ShootContainer.Position = UDim2.new(1, -80, 0.5, -35)
+    ShootContainer.BackgroundTransparency = 1
+    ShootContainer.Parent = ShootScreenGui
 
--- Создаем GUI после загрузки
-while _G.IsLoading do task.wait() end
-CreateMainGUI()
+    -- Ручка для перемещения (вплотную к кнопке)
+    local ShootDragHandle = Instance.new("Frame")
+    ShootDragHandle.Name = "ShootDragHandle"
+    ShootDragHandle.Size = UDim2.new(1, 0, 0, 8) -- Маленькая ручка
+    ShootDragHandle.Position = UDim2.new(0, 0, 0, -8) -- Вплотную к кнопке
+    ShootDragHandle.BackgroundColor3 = DARK_GRAY_HEADER
+    ShootDragHandle.BackgroundTransparency = 0.7
+    ShootDragHandle.BorderSizePixel = 0
+    ShootDragHandle.Parent = ShootContainer
 
--- Очистка при выходе
-game:GetService("Players").PlayerRemoving:Connect(function(player)
-    if player == Player then
-        _G.MM2UltimateScriptIsLoaded = false
-        _G.IsLoading = nil
-        if MainGUI then
-            MainGUI:Destroy()
-            MainGUI = nil
+    local UICornerHandle = Instance.new("UICorner")
+    UICornerHandle.CornerRadius = UDim.new(0, 4)
+    UICornerHandle.Parent = ShootDragHandle
+
+    -- Кнопка Shoot (квадратная)
+    local ShootButton = Instance.new("TextButton")
+    ShootButton.Name = "ShootButton"
+    ShootButton.Size = UDim2.new(1, 0, 1, 0)
+    ShootButton.Position = UDim2.new(0, 0, 0, 0)
+    ShootButton.BackgroundColor3 = DARK_GRAY_HEADER
+    ShootButton.TextColor3 = WHITE_TEXT
+    ShootButton.Font = MAIN_FONT
+    ShootButton.TextSize = 14
+    ShootButton.Text = "SHOOT"
+    ShootButton.Parent = ShootContainer
+
+    local UICornerButton = Instance.new("UICorner")
+    UICornerButton.CornerRadius = UDim.new(0, 8)
+    UICornerButton.Parent = ShootButton
+
+    -- Функция для ShootButton
+    ShootButton.MouseButton1Click:Connect(function()
+        TweenService:Create(ShootButton, TweenInfo.new(0.1), {Size = UDim2.new(0.95, 0, 0.95, 0)}):Play()
+        task.wait(0.1)
+        TweenService:Create(ShootButton, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local backpack = LocalPlayer:WaitForChild("Backpack")
+        local gun = backpack:FindFirstChild("Gun") or char:FindFirstChild("Gun")
+
+        if gun then
+            char:WaitForChild("Humanoid"):EquipTool(gun)
+            task.wait(0.2)
+
+            local murderer = nil
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local knife = player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
+                    if knife then
+                        murderer = player
+                        break
+                    end
+                end
+            end
+
+            if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetChar = murderer.Character
+                local targetPos = targetChar.HumanoidRootPart.Position
+                local targetVel = targetChar.HumanoidRootPart.Velocity
+
+                local bulletSpeed = 300
+                local distance = (targetPos - char.HumanoidRootPart.Position).Magnitude
+                local leadPos = targetPos + (targetVel * (distance / bulletSpeed))
+
+                local success, err = pcall(function()
+                    local gunRemote = workspace:WaitForChild(LocalPlayer.Name):WaitForChild("Gun")
+                        :WaitForChild("KnifeLocal"):WaitForChild("CreateBeam"):WaitForChild("RemoteFunction")
+                    gunRemote:InvokeServer(1, leadPos, "AH2")
+
+                    ShootButton.Text = "SHOT!"
+                    ShootButton.BackgroundColor3 = PURPLE_ACCENT
+                    task.wait(1)
+                    ShootButton.Text = "SHOOT"
+                    ShootButton.BackgroundColor3 = DARK_GRAY_HEADER
+                end)
+            else
+                ShootButton.Text = "NO TARGET"
+                ShootButton.BackgroundColor3 = GRAY_NOTE
+                task.wait(1)
+                ShootButton.Text = "SHOOT"
+                ShootButton.BackgroundColor3 = DARK_GRAY_HEADER
+            end
+        else
+            ShootButton.Text = "NO GUN"
+            ShootButton.BackgroundColor3 = GRAY_NOTE
+            task.wait(1)
+            ShootButton.Text = "SHOOT"
+            ShootButton.BackgroundColor3 = DARK_GRAY_HEADER
         end
-        
-        ESPEnabled = false
-        AutoGunEnabled = false
-        AimbotEnabled = false
-        
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= Player and player.Character and player.Character:FindFirstChild("Highlight") then
-                player.Character:FindFirstChild("Highlight"):Destroy()
+    end)
+
+    -- Перемещение ShootContainer
+    local shootDragging, shootDragStart, shootStartPos
+
+    local function updateShootPos(input)
+        local delta = input.Position - shootDragStart
+        ShootContainer.Position = UDim2.new(shootStartPos.X.Scale, shootStartPos.X.Offset + delta.X, shootStartPos.Y.Scale, shootStartPos.Y.Offset + delta.Y)
+    end
+
+    ShootDragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            shootDragging = true
+            shootDragStart = input.Position
+            shootStartPos = ShootContainer.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    shootDragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if shootDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateShootPos(input)
+        end
+    end)
+
+    return ShootScreenGui
+end
+
+-- Основной цикл
+local function MainLoop()
+    while task.wait(0.1) do
+        -- Обновление ролей для ESP
+        if ReplicatedStorage:FindFirstChild("GetPlayerData", true) then
+            roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+            for i, v in pairs(roles) do
+                if v.Role == "Murderer" then
+                    Murder = i
+                elseif v.Role == 'Sheriff'then
+                    Sheriff = i
+                elseif v.Role == 'Hero'then
+                    Hero = i
+                end
+            end
+            
+            -- Обновление ESP
+            if ESPEnabled then
+                CreateHighlight()
+                UpdateHighlights()
             end
         end
+        
+        -- Авто-подбор оружия
+        if AutoGetGun.Enabled and not isMurderer() then
+            teleportToGunAndBack()
+        end
+    end
+end
+
+-- Инициализация
+CreateMainGUI()
+CreateShootGUI()
+spawn(MainLoop)
+
+-- Анти-АФК
+local VirtualUser = game:GetService("VirtualUser")
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+-- Очистка при выходе
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        if MainGUI then MainGUI:Destroy() end
+        if ShootGUI then ShootGUI:Destroy() end
     end
 end)
