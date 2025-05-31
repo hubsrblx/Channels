@@ -18,7 +18,7 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 140, 0, 80)
-MainFrame.Position = UDim2.new(1, -150, 0, 10)  -- Правый верхний угол
+MainFrame.Position = UDim2.new(1, -150, 0, 10)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 MainFrame.BackgroundTransparency = 0.2
 MainFrame.BorderSizePixel = 0
@@ -46,7 +46,7 @@ Toggle.Name = "AutoGetGunToggle"
 Toggle.Text = "Get Gun [OFF]"
 Toggle.Size = UDim2.new(0.8, 0, 0, 25)
 Toggle.Position = UDim2.new(0.1, 0, 0, 30)
-Toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)  -- Серый (выключено)
+Toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 Toggle.Font = Enum.Font.Gotham
 Toggle.TextSize = 12
@@ -62,10 +62,10 @@ EspToggle.Name = "EspToggle"
 EspToggle.Text = "ESP [OFF]"
 EspToggle.Size = UDim2.new(0.8, 0, 0, 25)
 EspToggle.Position = UDim2.new(0.1, 0, 0, 55)
-EspToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)  -- Серый (выключено)
+EspToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 EspToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspToggle.Font = Enum.Font.Gotham
-EspToggle.TextSize = 12
+Toggle.TextSize = 12
 EspToggle.Parent = MainFrame
 
 local EspToggleCorner = Instance.new("UICorner")
@@ -129,15 +129,15 @@ local ShootSliderCorner = Instance.new("UICorner")
 ShootSliderCorner.CornerRadius = UDim.new(0, 4)
 ShootSliderCorner.Parent = ShootSlider
 
--- Окно для кнопки GET GUN (слева)
+-- Окно для кнопки GET GUN (справа рядом с SHOOT)
 local GetGunFrame = Instance.new("Frame")
 GetGunFrame.Name = "GetGunFrame"
 GetGunFrame.Size = UDim2.new(0, 60, 0, 60)
-GetGunFrame.Position = UDim2.new(0.2, -30, 0.5, -30)
+GetGunFrame.Position = UDim2.new(0.8, -100, 0.5, -30)  -- Сдвинуто влево на 70px
 GetGunFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 GetGunFrame.BackgroundTransparency = 0.2
 GetGunFrame.BorderSizePixel = 0
-GetGunFrame.Visible = false -- Скрыто по умолчанию
+GetGunFrame.Visible = false
 GetGunFrame.Parent = ScreenGui
 
 local GetGunFrameCorner = Instance.new("UICorner")
@@ -312,9 +312,7 @@ end
 Toggle.MouseButton1Click:Connect(function()
     AutoGetGun.Enabled = not AutoGetGun.Enabled
     Toggle.Text = AutoGetGun.Enabled and "Get Gun [ON]" or "Get Gun [OFF]"
-    -- Изменение цвета кнопки
     Toggle.BackgroundColor3 = AutoGetGun.Enabled and Color3.fromRGB(40, 180, 40) or Color3.fromRGB(60, 60, 60)
-    
     GetGunFrame.Visible = AutoGetGun.Enabled
 end)
 
@@ -400,48 +398,76 @@ local ESP = {
     PlayerHighlights = {},
     MinScaleDistance = 30,
     MaxScaleDistance = 100,
-    BaseSize = 5
+    BaseSize = 5,
+    LastFullUpdate = 0
 }
 
 local roles = {}
 local Murder, Sheriff, Hero
 
-function CreateHighlight()
-    -- Оптимизация: создаем подсветки только для новых игроков
+function CreatePlayerHighlight(player)
+    if not player or player == LocalPlayer then return end
+    if ESP.PlayerHighlights[player] then return end
+    
+    if player.Character then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PlayerHighlight"
+        highlight.Parent = player.Character
+        highlight.Enabled = false
+        ESP.PlayerHighlights[player] = highlight
+    end
+    
+    -- Обработчик для новых персонажей
+    player.CharacterAdded:Connect(function(char)
+        if ESP.PlayerHighlights[player] then
+            ESP.PlayerHighlights[player]:Destroy()
+        end
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PlayerHighlight"
+        highlight.Parent = char
+        highlight.Enabled = ESP.Enabled
+        ESP.PlayerHighlights[player] = highlight
+    end)
+end
+
+function CreateGunHighlight(gun)
+    if ESP.GunHighlights[gun] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "GunHighlight"
+    highlight.FillColor = Color3.fromRGB(170, 0, 255)
+    highlight.OutlineColor = Color3.fromRGB(170, 0, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Adornee = gun
+    highlight.Parent = gun
+    highlight.Enabled = false
+    
+    ESP.GunHighlights[gun] = highlight
+    
+    gun.AncestryChanged:Connect(function()
+        if not gun:IsDescendantOf(Workspace) then
+            if ESP.GunHighlights[gun] then
+                ESP.GunHighlights[gun]:Destroy()
+                ESP.GunHighlights[gun] = nil
+            end
+        end
+    end)
+end
+
+function FullESPUpdate()
+    -- Игроки
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not ESP.PlayerHighlights[player] then
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "PlayerHighlight"
-            highlight.Parent = player.Character
-            highlight.Enabled = false
-            ESP.PlayerHighlights[player] = highlight
+        CreatePlayerHighlight(player)
+    end
+    
+    -- Пистолеты
+    for _, gun in ipairs(Workspace:GetDescendants()) do
+        if gun.Name == "GunDrop" then
+            CreateGunHighlight(gun)
         end
     end
     
-    -- Оптимизация: создаем подсветки только для новых пистолетов
-    for _, gun in ipairs(Workspace:GetDescendants()) do
-        if gun.Name == "GunDrop" and not ESP.GunHighlights[gun] then
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "GunHighlight"
-            highlight.FillColor = Color3.fromRGB(170, 0, 255)
-            highlight.OutlineColor = Color3.fromRGB(170, 0, 255)
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.Adornee = gun
-            highlight.Parent = gun
-            highlight.Enabled = false
-            
-            ESP.GunHighlights[gun] = highlight
-            
-            gun.AncestryChanged:Connect(function()
-                if not gun:IsDescendantOf(Workspace) then
-                    if ESP.GunHighlights[gun] then
-                        ESP.GunHighlights[gun]:Destroy()
-                        ESP.GunHighlights[gun] = nil
-                    end
-                end
-            end)
-        end
-    end
+    ESP.LastFullUpdate = tick()
 end
 
 function UpdateHighlights()
@@ -462,7 +488,9 @@ function UpdateHighlights()
                 end
             end
         else
-            highlight:Destroy()
+            if highlight then
+                highlight:Destroy()
+            end
             ESP.PlayerHighlights[player] = nil
         end
     end
@@ -490,19 +518,21 @@ function UpdateHighlights()
                 highlight.OutlineTransparency = 1 - (scale / (ESP.BaseSize * 2))
             end
         else
-            highlight:Destroy()
+            if highlight then
+                highlight:Destroy()
+            end
             ESP.GunHighlights[gun] = nil
         end
     end
 end
 
 function ClearAllHighlights()
-    for _, highlight in pairs(ESP.PlayerHighlights) do
+    for player, highlight in pairs(ESP.PlayerHighlights) do
         highlight:Destroy()
     end
     ESP.PlayerHighlights = {}
     
-    for _, highlight in pairs(ESP.GunHighlights) do
+    for gun, highlight in pairs(ESP.GunHighlights) do
         highlight:Destroy()
     end
     ESP.GunHighlights = {}
@@ -521,43 +551,23 @@ end
 EspToggle.MouseButton1Click:Connect(function()
     ESP.Enabled = not ESP.Enabled
     EspToggle.Text = ESP.Enabled and "ESP [ON]" or "ESP [OFF]"
-    -- Изменение цвета кнопки
     EspToggle.BackgroundColor3 = ESP.Enabled and Color3.fromRGB(40, 180, 40) or Color3.fromRGB(60, 60, 60)
     
     if ESP.Enabled then
-        CreateHighlight()
+        FullESPUpdate()
     end
     
     UpdateHighlights()
 end)
 
 -- Основной цикл ESP
-local lastUpdate = 0
+local lastRoleUpdate = 0
 RunService.RenderStepped:Connect(function()
-    -- Оптимизация: обновляем роли только раз в секунду
-    if tick() - lastUpdate > 1 then
+    -- Обновление ролей
+    if tick() - lastRoleUpdate > 1 then
         roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
         for i, v in pairs(roles) do
             if v.Role == "Murderer" then
                 Murder = i
             elseif v.Role == 'Sheriff' then
                 Sheriff = i
-            elseif v.Role == 'Hero' then
-                Hero = i
-            end
-        end
-        lastUpdate = tick()
-    end
-    
-    if ESP.Enabled then
-        CreateHighlight()
-        UpdateHighlights()
-    end
-end)
-
--- Очистка при выходе
-game:GetService("Players").PlayerRemoving:Connect(function(player)
-    if player == LocalPlayer then
-        ClearAllHighlights()
-    end
-end)
