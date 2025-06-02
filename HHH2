@@ -1,1 +1,34 @@
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
+-- Создаем GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ScareGUI"
+ScreenGui.Parent = PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(1, 0, 1, 0) -- На весь экран
+Frame.BackgroundColor3 = Color3.new(0, 0, 0) -- Черный фон
+Frame.Parent = ScreenGui
+
+local ImageLabel = Instance.new("ImageLabel")
+ImageLabel.Size = UDim2.new(1, 0, 1, 0)
+ImageLabel.Image = "rbxassetid://129786242873" -- Вставь ID картинки
+ImageLabel.BackgroundTransparency = 1
+ImageLabel.Visible = false -- Сначала невидима
+ImageLabel.Parent = Frame
+
+local Sound = Instance.new("Sound")
+Sound.SoundId = "rbxassetid://18925320031" -- Вставь ID звука
+Sound.Volume = 1
+Sound.Parent = ScreenGui
+
+-- Задержка перед скримером (3 секунды)
+wait(3)
+ImageLabel.Visible = true
+Sound:Play()
+
+-- Удаляем через 2 секунды
+wait(2)
+ScreenGui:Destroy()
