@@ -6,300 +6,322 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
---==[ НАСТРОЙКИ СТИЛЯ ]==--
-local GUI_STYLE = {
-    -- Основные настройки окон
-    WINDOW = {
-        BACKGROUND_COLOR = Color3.fromRGB(30, 30, 35),  -- Цвет фона окон
-        BACKGROUND_TRANSPARENCY = 0.2,                  -- Прозрачность фона (0 - полностью непрозрачный, 1 - невидимый)
-        CORNER_RADIUS = 12,                             -- Радиус закругления углов в пикселях
-        BORDER_SIZE = 0                                 -- Толщина границы (0 - нет границы)
-    },
-    
-    -- Стиль кнопки SHOOT
-    SHOOT_BUTTON = {
-        SIZE = UDim2.new(0, 60, 0, 60),                -- Размер кнопки (ширина, высота в пикселях)
-        COLOR = Color3.fromRGB(180, 40, 40),           -- Основной цвет кнопки
-        HOVER_COLOR = Color3.fromRGB(200, 50, 50),     -- Цвет кнопки при наведении
-        TEXT_COLOR = Color3.fromRGB(255, 255, 255),    -- Цвет текста
-        TEXT_SIZE = 14,                                -- Размер текста
-        FONT = Enum.Font.GothamBold,                   -- Шрифт текста
-        CORNER_RADIUS = 30,                            -- Закругление углов (30 - полностью круглая кнопка)
-        PRESSED_SIZE = UDim2.new(0, 55, 0, 55),       -- Размер кнопки при нажатии
-        TEXT_OFFSET = UDim2.new(0, 0, 0, -2)         -- Смещение текста по вертикали
-    },
-    
-    -- Стиль тогглов (Auto Get Gun и ESP)
-    TOGGLE_BUTTON = {
-        SIZE = UDim2.new(0.8, 0, 0, 30),               -- Размер кнопки (80% ширины окна, высота 30px)
-        OFF_COLOR = Color3.fromRGB(60, 60, 60),        -- Цвет в выключенном состоянии
-        ON_COLOR = Color3.fromRGB(80, 180, 80),        -- Цвет во включенном состоянии
-        TEXT_COLOR = Color3.fromRGB(255, 255, 255),    -- Цвет текста
-        TEXT_SIZE = 12,                                -- Размер текста
-        FONT = Enum.Font.Gotham,                       -- Шрифт текста
-        CORNER_RADIUS = 8,                             -- Закругление углов
-        HOVER_OFF_COLOR = Color3.fromRGB(80, 80, 80),  -- Цвет при наведении (выкл)
-        HOVER_ON_COLOR = Color3.fromRGB(100, 200, 100) -- Цвет при наведении (вкл)
-    },
-    
-    -- Стиль полосы перемещения
-    DRAG_HANDLE = {
-        HEIGHT = 6,                                    -- Высота полосы в пикселях
-        MARGIN_TOP = 8,                                -- Отступ сверху от кнопки в пикселях
-        COLOR = Color3.fromRGB(150, 150, 150),        -- Цвет полосы
-        TRANSPARENCY = 0.5,                            -- Прозрачность полосы (0 - непрозрачная, 1 - невидимая)
-        CORNER_RADIUS = 3                               -- Закругление углов полосы
-    },
-    
-    -- Цвета статусов
-    STATUS_COLORS = {
-        SUCCESS = Color3.fromRGB(40, 180, 40),        -- Цвет при успешном выстреле
-        ERROR = Color3.fromRGB(80, 80, 80),           -- Цвет при ошибке
-        DEFAULT = Color3.fromRGB(180, 40, 40)         -- Стандартный цвет кнопки
-    },
-    
-    -- Позиционирование окон
-    WINDOW_POSITION = {
-        MAIN_OFFSET = 10,                             -- Отступ от краев экрана в пикселях
-        TOOLS_OFFSET = 10                             -- Отступ для окна инструментов
-    }
-}
-
---==[ НАСТРОЙКИ ФУНКЦИОНАЛА ]==--
-local AUTO_GET_GUN = {
-    COLLECT_DISTANCE = 5000,  -- Максимальная дистанция поиска оружия
-    TELEPORT_HEIGHT = 2,      -- Высота телепортации над оружием
-    CHECK_INTERVAL = 0.5      -- Интервал проверки оружия в секундах
-}
-
-local SHOOT_SETTINGS = {
-    BULLET_SPEED = 300,       -- Скорость пули для расчета упреждения
-    COOLDOWN = 1,             -- Время перезарядки в секундах
-    LEAD_MULTIPLIER = 1.2     -- Множитель упреждения
-}
-
-local ESP_SETTINGS = {
-    COLORS = {
-        MURDERER = Color3.fromRGB(255, 0, 0),    -- Цвет убийцы
-        SHERIFF = Color3.fromRGB(0, 0, 255),     -- Цвет шерифа
-        HERO = Color3.fromRGB(255, 250, 0),      -- Цвет героя
-        INNOCENT = Color3.fromRGB(0, 255, 0)     -- Цвет невиновного
-    },
-    UPDATE_INTERVAL = 0.2     -- Интервал обновления ESP в секундах
-}
-
---==[ СОЗДАНИЕ GUI ]==--
+-- Создаем интерфейс
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MobileMurderTerminator"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Основное окно (правый верхний угол с отступом)
+-- Экран загрузки
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Size = UDim2.new(0, 140, 0, 80)
+LoadingFrame.Position = UDim2.new(1, -150, 0, 10)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+LoadingFrame.BackgroundTransparency = 0.2
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.Visible = true
+LoadingFrame.Parent = ScreenGui
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 12)
+LoadingCorner.Parent = LoadingFrame
+
+local LoadingTitle = Instance.new("TextLabel")
+LoadingTitle.Name = "LoadingTitle"
+LoadingTitle.Text = "TERMINATOR"
+LoadingTitle.Size = UDim2.new(1, 0, 0, 25)
+LoadingTitle.Position = UDim2.new(0, 0, 0, 0)
+LoadingTitle.BackgroundTransparency = 1
+LoadingTitle.TextColor3 = Color3.fromRGB(255, 80, 80)
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.TextSize = 14
+LoadingTitle.Parent = LoadingFrame
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Name = "LoadingText"
+LoadingText.Text = "LOADING..."
+LoadingText.Size = UDim2.new(1, 0, 0, 20)
+LoadingText.Position = UDim2.new(0, 0, 0.5, 0)
+LoadingText.BackgroundTransparency = 1
+LoadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
+LoadingText.Font = Enum.Font.Gotham
+LoadingText.TextSize = 12
+LoadingText.Parent = LoadingFrame
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Name = "ProgressBar"
+ProgressBar.Size = UDim2.new(0.8, 0, 0, 8)
+ProgressBar.Position = UDim2.new(0.1, 0, 0.8, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ProgressBar.BorderSizePixel = 0
+ProgressBar.Parent = LoadingFrame
+
+local ProgressBarCorner = Instance.new("UICorner")
+ProgressBarCorner.CornerRadius = UDim.new(0, 4)
+ProgressBarCorner.Parent = ProgressBar
+
+local ProgressFill = Instance.new("Frame")
+ProgressFill.Name = "ProgressFill"
+ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressFill.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+ProgressFill.BorderSizePixel = 0
+ProgressFill.Parent = ProgressBar
+
+local ProgressFillCorner = Instance.new("UICorner")
+ProgressFillCorner.CornerRadius = UDim.new(0, 4)
+ProgressFillCorner.Parent = ProgressFill
+
+-- Основное окно (скрыто до окончания загрузки)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 80, 0, 80)
-MainFrame.Position = UDim2.new(
-    1, -80 - GUI_STYLE.WINDOW_POSITION.MAIN_OFFSET,  -- Правый край с отступом
-    0, GUI_STYLE.WINDOW_POSITION.MAIN_OFFSET         -- Верхний край с отступом
-)
-MainFrame.BackgroundTransparency = 1  -- Полностью прозрачный фон окна
+MainFrame.Size = UDim2.new(0, 140, 0, 80)
+MainFrame.Position = UDim2.new(1, -150, 0, 10)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BackgroundTransparency = 0.2
 MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
--- Кнопка SHOOT (круглая без фона)
-local ShootButton = Instance.new("TextButton")
-ShootButton.Name = "ShootButton"
-ShootButton.Text = "SHOOT"
-ShootButton.Size = GUI_STYLE.SHOOT_BUTTON.SIZE
-ShootButton.Position = UDim2.new(0.5, -GUI_STYLE.SHOOT_BUTTON.SIZE.X.Offset/2, 0, 0) -- Центрирование по горизонтали
-ShootButton.AnchorPoint = Vector2.new(0.5, 0) -- Центрирование относительно позиции
-ShootButton.BackgroundColor3 = GUI_STYLE.SHOOT_BUTTON.COLOR
-ShootButton.TextColor3 = GUI_STYLE.SHOOT_BUTTON.TEXT_COLOR
-ShootButton.Font = GUI_STYLE.SHOOT_BUTTON.FONT
-ShootButton.TextSize = GUI_STYLE.SHOOT_BUTTON.TEXT_SIZE
-ShootButton.TextYAlignment = Enum.TextYAlignment.Center -- Выравнивание текста по центру
-ShootButton.TextTransparency = 0.1 -- Легкая прозрачность текста
-ShootButton.TextPosition = GUI_STYLE.SHOOT_BUTTON.TEXT_OFFSET -- Смещение текста
-ShootButton.AutoButtonColor = false
-ShootButton.Parent = MainFrame
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
 
--- Сделаем кнопку круглой
-local ShootButtonCorner = Instance.new("UICorner")
-ShootButtonCorner.CornerRadius = UDim.new(1, 0) -- Полностью круглые углы
-ShootButtonCorner.Parent = ShootButton
+-- Заголовок
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Text = "TERMINATOR"
+TitleLabel.Size = UDim2.new(1, 0, 0, 25)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 14
+TitleLabel.Parent = MainFrame
 
--- Полоса для перемещения (полупрозрачная)
-local DragHandle = Instance.new("Frame")
-DragHandle.Name = "DragHandle"
-DragHandle.Size = UDim2.new(1, 0, 0, GUI_STYLE.DRAG_HANDLE.HEIGHT) -- На всю ширину окна
-DragHandle.Position = UDim2.new(
-    0, 0, 
-    0, GUI_STYLE.SHOOT_BUTTON.SIZE.Y.Offset + GUI_STYLE.DRAG_HANDLE.MARGIN_TOP
-)
-DragHandle.BackgroundColor3 = GUI_STYLE.DRAG_HANDLE.COLOR
-DragHandle.BackgroundTransparency = GUI_STYLE.DRAG_HANDLE.TRANSPARENCY
-DragHandle.BorderSizePixel = 0
-DragHandle.Parent = MainFrame
-
--- Закругление полосы перемещения
-local DragHandleCorner = Instance.new("UICorner")
-DragHandleCorner.CornerRadius = UDim.new(0, GUI_STYLE.DRAG_HANDLE.CORNER_RADIUS)
-DragHandleCorner.Parent = DragHandle
-
--- Окно инструментов (левая сторона с отступом)
-local ToolsFrame = Instance.new("Frame")
-ToolsFrame.Name = "ToolsFrame"
-ToolsFrame.Size = UDim2.new(0, 120, 0, 100)
-ToolsFrame.Position = UDim2.new(
-    0, GUI_STYLE.WINDOW_POSITION.TOOLS_OFFSET, 
-    0, GUI_STYLE.WINDOW_POSITION.TOOLS_OFFSET
-)
-ToolsFrame.BackgroundColor3 = GUI_STYLE.WINDOW.BACKGROUND_COLOR
-ToolsFrame.BackgroundTransparency = GUI_STYLE.WINDOW.BACKGROUND_TRANSPARENCY
-ToolsFrame.BorderSizePixel = GUI_STYLE.WINDOW.BORDER_SIZE
-ToolsFrame.Parent = ScreenGui
-
-local ToolsFrameCorner = Instance.new("UICorner")
-ToolsFrameCorner.CornerRadius = UDim.new(0, GUI_STYLE.WINDOW.CORNER_RADIUS)
-ToolsFrameCorner.Parent = ToolsFrame
-
--- Кнопка Auto Get Gun
+-- Переключатель авто-подбора оружия
 local Toggle = Instance.new("TextButton")
 Toggle.Name = "AutoGetGunToggle"
-Toggle.Text = "Auto Get Gun [OFF]"
-Toggle.Size = GUI_STYLE.TOGGLE_BUTTON.SIZE
-Toggle.Position = UDim2.new(0.1, 0, 0, 10)
-Toggle.BackgroundColor3 = GUI_STYLE.TOGGLE_BUTTON.OFF_COLOR
-Toggle.TextColor3 = GUI_STYLE.TOGGLE_BUTTON.TEXT_COLOR
-Toggle.Font = GUI_STYLE.TOGGLE_BUTTON.FONT
-Toggle.TextSize = GUI_STYLE.TOGGLE_BUTTON.TEXT_SIZE
-Toggle.Parent = ToolsFrame
+Toggle.Text = "Get Gun [OFF]"
+Toggle.Size = UDim2.new(0.8, 0, 0, 25)
+Toggle.Position = UDim2.new(0.1, 0, 0, 30)
+Toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+Toggle.Font = Enum.Font.Gotham
+Toggle.TextSize = 12
+Toggle.Parent = MainFrame
 
 local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, GUI_STYLE.TOGGLE_BUTTON.CORNER_RADIUS)
+ToggleCorner.CornerRadius = UDim.new(0, 8)
 ToggleCorner.Parent = Toggle
 
 -- Кнопка ESP
 local EspToggle = Instance.new("TextButton")
 EspToggle.Name = "EspToggle"
 EspToggle.Text = "ESP [OFF]"
-EspToggle.Size = GUI_STYLE.TOGGLE_BUTTON.SIZE
-EspToggle.Position = UDim2.new(0.1, 0, 0, 50)
-EspToggle.BackgroundColor3 = GUI_STYLE.TOGGLE_BUTTON.OFF_COLOR
-EspToggle.TextColor3 = GUI_STYLE.TOGGLE_BUTTON.TEXT_COLOR
-EspToggle.Font = GUI_STYLE.TOGGLE_BUTTON.FONT
-EspToggle.TextSize = GUI_STYLE.TOGGLE_BUTTON.TEXT_SIZE
-EspToggle.Parent = ToolsFrame
+EspToggle.Size = UDim2.new(0.8, 0, 0, 25)
+EspToggle.Position = UDim2.new(0.1, 0, 0, 55)
+EspToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+EspToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+EspToggle.Font = Enum.Font.Gotham
+Toggle.TextSize = 12
+EspToggle.Parent = MainFrame
 
 local EspToggleCorner = Instance.new("UICorner")
-EspToggleCorner.CornerRadius = UDim.new(0, GUI_STYLE.TOGGLE_BUTTON.CORNER_RADIUS)
+EspToggleCorner.CornerRadius = UDim.new(0, 8)
 EspToggleCorner.Parent = EspToggle
 
--- Полоса для перемещения окна инструментов
-local ToolsDragHandle = Instance.new("Frame")
-ToolsDragHandle.Name = "DragHandle"
-ToolsDragHandle.Size = UDim2.new(1, 0, 0, GUI_STYLE.DRAG_HANDLE.HEIGHT)
-ToolsDragHandle.Position = UDim2.new(0, 0, 0, 90)
-ToolsDragHandle.BackgroundColor3 = GUI_STYLE.DRAG_HANDLE.COLOR
-ToolsDragHandle.BackgroundTransparency = GUI_STYLE.DRAG_HANDLE.TRANSPARENCY
-ToolsDragHandle.BorderSizePixel = 0
-ToolsDragHandle.Parent = ToolsFrame
+-- Ползунок для основного окна
+local MainSlider = Instance.new("Frame")
+MainSlider.Name = "MainSlider"
+MainSlider.Size = UDim2.new(0.6, 0, 0, 8)
+MainSlider.Position = UDim2.new(0.2, 0, 1, 5)
+MainSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+MainSlider.BorderSizePixel = 0
+MainSlider.Parent = MainFrame
 
-local ToolsDragHandleCorner = Instance.new("UICorner")
-ToolsDragHandleCorner.CornerRadius = UDim.new(0, GUI_STYLE.DRAG_HANDLE.CORNER_RADIUS)
-ToolsDragHandleCorner.Parent = ToolsDragHandle
+local MainSliderCorner = Instance.new("UICorner")
+MainSliderCorner.CornerRadius = UDim.new(0, 4)
+MainSliderCorner.Parent = MainSlider
 
---==[ СИСТЕМА ПЕРЕМЕЩЕНИЯ ]==--
-local function setupDragging(frame, dragHandle)
-    local dragging = false
-    local dragInput, dragStart, startPos
+-- Окно для кнопки SHOOT (справа) - скрыто до загрузки
+local ShootFrame = Instance.new("Frame")
+ShootFrame.Name = "ShootFrame"
+ShootFrame.Size = UDim2.new(0, 60, 0, 60)
+ShootFrame.Position = UDim2.new(0.8, -30, 0.5, -30)
+ShootFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+ShootFrame.BackgroundTransparency = 0.2
+ShootFrame.BorderSizePixel = 0
+ShootFrame.Visible = false
+ShootFrame.Parent = ScreenGui
+
+local ShootFrameCorner = Instance.new("UICorner")
+ShootFrameCorner.CornerRadius = UDim.new(0, 12)
+ShootFrameCorner.Parent = ShootFrame
+
+-- Квадратная кнопка SHOOT
+local ShootButton = Instance.new("TextButton")
+ShootButton.Name = "ShootButton"
+ShootButton.Text = "SHOOT"
+ShootButton.Size = UDim2.new(0.8, 0, 0.8, 0)
+ShootButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+ShootButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ShootButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShootButton.Font = Enum.Font.GothamBold
+ShootButton.TextSize = 14
+ShootButton.AutoButtonColor = false
+ShootButton.Parent = ShootFrame
+
+local ShootButtonCorner = Instance.new("UICorner")
+ShootButtonCorner.CornerRadius = UDim.new(0, 8)
+ShootButtonCorner.Parent = ShootButton
+
+-- Ползунок для окна SHOOT
+local ShootSlider = Instance.new("Frame")
+ShootSlider.Name = "ShootSlider"
+ShootSlider.Size = UDim2.new(0.6, 0, 0, 8)
+ShootSlider.Position = UDim2.new(0.2, 0, 1, 5)
+ShootSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+ShootSlider.BorderSizePixel = 0
+ShootSlider.Parent = ShootFrame
+
+local ShootSliderCorner = Instance.new("UICorner")
+ShootSliderCorner.CornerRadius = UDim.new(0, 4)
+ShootSliderCorner.Parent = ShootSlider
+
+-- Окно для кнопки GET GUN (справа рядом с SHOOT) - скрыто до загрузки
+local GetGunFrame = Instance.new("Frame")
+GetGunFrame.Name = "GetGunFrame"
+GetGunFrame.Size = UDim2.new(0, 60, 0, 60)
+GetGunFrame.Position = UDim2.new(0.8, -100, 0.5, -30)
+GetGunFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+GetGunFrame.BackgroundTransparency = 0.2
+GetGunFrame.BorderSizePixel = 0
+GetGunFrame.Visible = false
+GetGunFrame.Parent = ScreenGui
+
+local GetGunFrameCorner = Instance.new("UICorner")
+GetGunFrameCorner.CornerRadius = UDim.new(0, 12)
+GetGunFrameCorner.Parent = GetGunFrame
+
+-- Квадратная кнопка GET GUN
+local GetGunButton = Instance.new("TextButton")
+GetGunButton.Name = "GetGunButton"
+GetGunButton.Text = "GET GUN"
+GetGunButton.Size = UDim2.new(0.8, 0, 0.8, 0)
+GetGunButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 100, 180)
+GetGunButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetGunButton.Font = Enum.Font.GothamBold
+GetGunButton.TextSize = 14
+GetGunButton.AutoButtonColor = false
+GetGunButton.Parent = GetGunFrame
+
+local GetGunButtonCorner = Instance.new("UICorner")
+GetGunButtonCorner.CornerRadius = UDim.new(0, 8)
+GetGunButtonCorner.Parent = GetGunButton
+
+-- Ползунок для окна GET GUN
+local GetGunSlider = Instance.new("Frame")
+GetGunSlider.Name = "GetGunSlider"
+GetGunSlider.Size = UDim2.new(0.6, 0, 0, 8)
+GetGunSlider.Position = UDim2.new(0.2, 0, 1, 5)
+GetGunSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+GetGunSlider.BorderSizePixel = 0
+GetGunSlider.Parent = GetGunFrame
+
+local GetGunSliderCorner = Instance.new("UICorner")
+GetGunSliderCorner.CornerRadius = UDim.new(0, 4)
+GetGunSliderCorner.Parent = GetGunSlider
+
+-- Анимация загрузки
+local loadStartTime = tick()
+local loadDuration = 20 -- 20 секунд
+
+local function updateProgress()
+    local elapsed = tick() - loadStartTime
+    local progress = math.min(elapsed / loadDuration, 1)
     
-    local function update(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, 
-            math.clamp(startPos.X.Offset + delta.X, 0, ScreenGui.AbsoluteSize.X - frame.AbsoluteSize.X),
-            startPos.Y.Scale, 
-            math.clamp(startPos.Y.Offset + delta.Y, 0, ScreenGui.AbsoluteSize.Y - frame.AbsoluteSize.Y)
-        )
+    ProgressFill.Size = UDim2.new(progress, 0, 1, 0)
+    LoadingText.Text = string.format("LOADING... %d%%", math.floor(progress * 100))
+    
+    if progress < 1 then
+        return true
+    else
+        -- Завершение загрузки
+        LoadingFrame.Visible = false
+        MainFrame.Visible = true
+        ShootFrame.Visible = true
+        return false
     end
+end
+
+-- Запуск процесса загрузки
+coroutine.wrap(function()
+    while updateProgress() do
+        RunService.RenderStepped:Wait()
+    end
+end)()
+
+-- Функция для перемещения окон (после загрузки)
+local function makeDraggable(frame, slider)
+    local dragging, dragStart, startPos
     
-    dragHandle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
-            
-            -- Подсветка при перемещении
-            if frame:FindFirstChildOfClass("TextButton") then
-                TweenService:Create(frame:FindFirstChildOfClass("TextButton"), TweenInfo.new(0.1), {BackgroundTransparency = 0.1}):Play()
-            end
+            TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundTransparency = 0.15}):Play()
             
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    if frame:FindFirstChildOfClass("TextButton") then
-                        TweenService:Create(frame:FindFirstChildOfClass("TextButton"), TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
-                    end
+                    TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
                 end
             end)
         end
     end)
     
-    dragHandle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and input == dragInput then
-            update(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
 
-setupDragging(MainFrame, DragHandle)
-setupDragging(ToolsFrame, ToolsDragHandle)
-
---==[ ЭФФЕКТЫ КНОПОК ]==--
--- Эффекты для кнопки SHOOT
-ShootButton.MouseEnter:Connect(function()
-    TweenService:Create(ShootButton, TweenInfo.new(0.1), {
-        BackgroundColor3 = GUI_STYLE.SHOOT_BUTTON.HOVER_COLOR,
-        TextTransparency = 0
-    }):Play()
-end)
-
-ShootButton.MouseLeave:Connect(function()
-    TweenService:Create(ShootButton, TweenInfo.new(0.1), {
-        BackgroundColor3 = GUI_STYLE.SHOOT_BUTTON.COLOR,
-        TextTransparency = 0.1
-    }):Play()
-end)
-
--- Функция для эффектов тогглов
-local function setupToggleHover(toggle, isOn)
-    toggle.MouseEnter:Connect(function()
-        local hoverColor = isOn and GUI_STYLE.TOGGLE_BUTTON.HOVER_ON_COLOR or GUI_STYLE.TOGGLE_BUTTON.HOVER_OFF_COLOR
-        TweenService:Create(toggle, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
-    end)
+-- Делаем все окна перемещаемыми после загрузки
+coroutine.wrap(function()
+    while LoadingFrame.Visible do
+        wait(0.1)
+    end
     
-    toggle.MouseLeave:Connect(function()
-        local normalColor = isOn and GUI_STYLE.TOGGLE_BUTTON.ON_COLOR or GUI_STYLE.TOGGLE_BUTTON.OFF_COLOR
-        TweenService:Create(toggle, TweenInfo.new(0.1), {BackgroundColor3 = normalColor}):Play()
-    end)
-end
+    makeDraggable(MainFrame, MainSlider)
+    makeDraggable(ShootFrame, ShootSlider)
+    makeDraggable(GetGunFrame, GetGunSlider)
+    
+    -- Эффекты при наведении на кнопки
+    local function setupButtonHover(button, normalColor, hoverColor)
+        button.MouseEnter:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+        end)
+        button.MouseLeave:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = normalColor}):Play()
+        end)
+    end
 
--- Обновление внешнего вида тоггла
-local function updateToggleAppearance(toggle, isOn)
-    local color = isOn and GUI_STYLE.TOGGLE_BUTTON.ON_COLOR or GUI_STYLE.TOGGLE_BUTTON.OFF_COLOR
-    TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = color}):Play()
-    setupToggleHover(toggle, isOn)
-end
+    setupButtonHover(ShootButton, Color3.fromRGB(180, 40, 40), Color3.fromRGB(200, 50, 50))
+    setupButtonHover(Toggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
+    setupButtonHover(EspToggle, Color3.fromRGB(60, 60, 60), Color3.fromRGB(80, 80, 80))
+    setupButtonHover(GetGunButton, Color3.fromRGB(40, 100, 180), Color3.fromRGB(60, 140, 220))
+end)()
 
---==[ СИСТЕМА АВТОПОДБОРА ОРУЖИЯ ]==--
-local AutoGetGun = { Enabled = false }
+-- Система авто-подбора оружия
+local AutoGetGun = { 
+    Enabled = false,
+    CollectDistance = 5000
+}
 
 local function isMurderer()
     local char = LocalPlayer.Character
@@ -318,7 +340,7 @@ local function getNearestGun()
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
-    local closestGun, closestDist = nil, AUTO_GET_GUN.COLLECT_DISTANCE
+    local closestGun, closestDist = nil, AutoGetGun.CollectDistance
     for _, item in ipairs(Workspace:GetDescendants()) do
         if item.Name == "GunDrop" then
             local success, pos = pcall(function() return item:GetPivot().Position end)
@@ -334,16 +356,39 @@ local function getNearestGun()
 end
 
 local function teleportToGunAndBack()
-    if isMurderer() then return end
+    if isMurderer() then
+        GetGunButton.Text = "MURDERER!"
+        GetGunButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        task.wait(1)
+        GetGunButton.Text = "GET GUN"
+        GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 100, 180)
+        return
+    end
+    
     local char = LocalPlayer.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
     local gun = getNearestGun()
-    if not gun then return end
+    if not gun then 
+        GetGunButton.Text = "NO GUN!"
+        GetGunButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        task.wait(1)
+        GetGunButton.Text = "GET GUN"
+        GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 100, 180)
+        return
+    end
 
+    -- Анимация кнопки
+    TweenService:Create(GetGunButton, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.75, 0), TextSize = 13}):Play()
+    task.wait(0.1)
+    TweenService:Create(GetGunButton, TweenInfo.new(0.1), {Size = UDim2.new(0.8, 0, 0.8, 0), TextSize = 14}):Play()
+    
+    GetGunButton.Text = "GETTING..."
+    GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+    
     local originalCFrame = root.CFrame
-    root.CFrame = CFrame.new(gun:GetPivot().Position + Vector3.new(0, AUTO_GET_GUN.TELEPORT_HEIGHT, 0))
+    root.CFrame = CFrame.new(gun:GetPivot().Position + Vector3.new(0, 2, 0))
 
     local timeout = tick() + 2
     while gun:IsDescendantOf(Workspace) and tick() < timeout do
@@ -351,21 +396,244 @@ local function teleportToGunAndBack()
     end
 
     root.CFrame = originalCFrame
+    
+    GetGunButton.Text = "GOT IT!"
+    task.wait(0.5)
+    GetGunButton.Text = "GET GUN"
+    GetGunButton.BackgroundColor3 = Color3.fromRGB(40, 100, 180)
 end
 
-local function autoGetGunLoop()
-    while AutoGetGun.Enabled do
-        teleportToGunAndBack()
-        task.wait(AUTO_GET_GUN.CHECK_INTERVAL)
+-- Логика переключателя авто-подбора (после загрузки)
+Toggle.MouseButton1Click:Connect(function()
+    AutoGetGun.Enabled = not AutoGetGun.Enabled
+    Toggle.Text = AutoGetGun.Enabled and "Get Gun [ON]" or "Get Gun [OFF]"
+    Toggle.BackgroundColor3 = AutoGetGun.Enabled and Color3.fromRGB(40, 180, 40) or Color3.fromRGB(60, 60, 60)
+    GetGunFrame.Visible = AutoGetGun.Enabled
+end)
+
+-- Логика кнопки GET GUN (после загрузки)
+GetGunButton.MouseButton1Click:Connect(function()
+    teleportToGunAndBack()
+end)
+
+-- Логика кнопки SHOOT (после загрузки)
+ShootButton.MouseButton1Click:Connect(function()
+    -- Анимация нажатия
+    TweenService:Create(ShootButton, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.75, 0), TextSize = 13}):Play()
+    task.wait(0.1)
+    TweenService:Create(ShootButton, TweenInfo.new(0.1), {Size = UDim2.new(0.8, 0, 0.8, 0), TextSize = 14}):Play()
+
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local backpack = LocalPlayer:WaitForChild("Backpack")
+    local gun = backpack:FindFirstChild("Gun") or char:FindFirstChild("Gun")
+
+    if gun then
+        char:WaitForChild("Humanoid"):EquipTool(gun)
+        task.wait(0.2)
+
+        local murderer = nil
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local knife = player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
+                if knife then
+                    murderer = player
+                    break
+                end
+            end
+        end
+
+        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetChar = murderer.Character
+            local targetPos = targetChar.HumanoidRootPart.Position
+            local targetVel = targetChar.HumanoidRootPart.Velocity
+
+            local bulletSpeed = 300
+            local distance = (targetPos - char.HumanoidRootPart.Position).Magnitude
+            local leadPos = targetPos + (targetVel * (distance / bulletSpeed))
+
+            local success, err = pcall(function()
+                local gunRemote = workspace:WaitForChild(LocalPlayer.Name):WaitForChild("Gun")
+                    :WaitForChild("KnifeLocal"):WaitForChild("CreateBeam"):WaitForChild("RemoteFunction")
+                gunRemote:InvokeServer(1, leadPos, "AH2")
+
+                ShootButton.Text = "SHOT FIRED"
+                ShootButton.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+                task.wait(1)
+                ShootButton.Text = "SHOOT"
+                ShootButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+            end)
+
+            if not success then
+                ShootButton.Text = "FAILED"
+                ShootButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                task.wait(1)
+                ShootButton.Text = "SHOOT"
+                ShootButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+            end
+        else
+            ShootButton.Text = "NO TARGET"
+            ShootButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            task.wait(1)
+            ShootButton.Text = "SHOOT"
+            ShootButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        end
+    else
+        ShootButton.Text = "NO GUN"
+        ShootButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        task.wait(1)
+        ShootButton.Text = "SHOOT"
+        ShootButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    end
+end)
+
+-- ESP система
+local ESP = { 
+    Enabled = false,
+    GunHighlights = {},
+    PlayerHighlights = {},
+    MinScaleDistance = 30,
+    MaxScaleDistance = 100,
+    BaseSize = 5,
+    LastFullUpdate = 0
+}
+
+local roles = {}
+local Murder, Sheriff, Hero
+
+function CreatePlayerHighlight(player)
+    if not player or player == LocalPlayer then return end
+    if ESP.PlayerHighlights[player] then return end
+    
+    if player.Character then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PlayerHighlight"
+        highlight.Parent = player.Character
+        highlight.Enabled = false
+        ESP.PlayerHighlights[player] = highlight
+    end
+    
+    -- Обработчик для новых персонажей
+    player.CharacterAdded:Connect(function(char)
+        if ESP.PlayerHighlights[player] then
+            ESP.PlayerHighlights[player]:Destroy()
+        end
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PlayerHighlight"
+        highlight.Parent = char
+        highlight.Enabled = ESP.Enabled
+        ESP.PlayerHighlights[player] = highlight
+    end)
+end
+
+function CreateGunHighlight(gun)
+    if ESP.GunHighlights[gun] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "GunHighlight"
+    highlight.FillColor = Color3.fromRGB(170, 0, 255)
+    highlight.OutlineColor = Color3.fromRGB(170, 0, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Adornee = gun
+    highlight.Parent = gun
+    highlight.Enabled = false
+    
+    ESP.GunHighlights[gun] = highlight
+    
+    gun.AncestryChanged:Connect(function()
+        if not gun:IsDescendantOf(Workspace) then
+            if ESP.GunHighlights[gun] then
+                ESP.GunHighlights[gun]:Destroy()
+                ESP.GunHighlights[gun] = nil
+            end
+        end
+    end)
+end
+
+function FullESPUpdate()
+    -- Игроки
+    for _, player in pairs(Players:GetPlayers()) do
+        CreatePlayerHighlight(player)
+    end
+    
+    -- Пистолеты
+    for _, gun in ipairs(Workspace:GetDescendants()) do
+        if gun.Name == "GunDrop" then
+            CreateGunHighlight(gun)
+        end
+    end
+    
+    ESP.LastFullUpdate = tick()
+end
+
+function UpdateHighlights()
+    -- Обновление подсветки игроков
+    for player, highlight in pairs(ESP.PlayerHighlights) do
+        if player and player.Character and highlight then
+            highlight.Enabled = ESP.Enabled
+            
+            if ESP.Enabled then
+                if player.Name == Sheriff and IsAlive(player) then
+                    highlight.FillColor = Color3.fromRGB(0, 0, 225)
+                elseif player.Name == Murder and IsAlive(player) then
+                    highlight.FillColor = Color3.fromRGB(225, 0, 0)
+                elseif player.Name == Hero and IsAlive(player) and not IsAlive(game.Players[Sheriff]) then
+                    highlight.FillColor = Color3.fromRGB(255, 250, 0)
+                else
+                    highlight.FillColor = Color3.fromRGB(0, 225, 0)
+                end
+            end
+        else
+            if highlight then
+                highlight:Destroy()
+            end
+            ESP.PlayerHighlights[player] = nil
+        end
+    end
+    
+    -- Обновление подсветки пистолетов
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    for gun, highlight in pairs(ESP.GunHighlights) do
+        if gun:IsDescendantOf(Workspace) then
+            highlight.Enabled = ESP.Enabled
+            
+            if ESP.Enabled and root then
+                local distance = (root.Position - gun:GetPivot().Position).Magnitude
+                local scale = ESP.BaseSize
+                
+                if distance > ESP.MaxScaleDistance then
+                    scale = ESP.BaseSize * 2
+                elseif distance > ESP.MinScaleDistance then
+                    local t = (distance - ESP.MinScaleDistance) / (ESP.MaxScaleDistance - ESP.MinScaleDistance)
+                    scale = ESP.BaseSize * (1 + t)
+                end
+                
+                highlight.FillTransparency = 1 - (scale / (ESP.BaseSize * 2))
+                highlight.OutlineTransparency = 1 - (scale / (ESP.BaseSize * 2))
+            end
+        else
+            if highlight then
+                highlight:Destroy()
+            end
+            ESP.GunHighlights[gun] = nil
+        end
     end
 end
 
---==[ СИСТЕМА ESP ]==--
-local ESPEnabled = false
-local Murder, Sheriff, Hero
-local roles = {}
+function ClearAllHighlights()
+    for player, highlight in pairs(ESP.PlayerHighlights) do
+        highlight:Destroy()
+    end
+    ESP.PlayerHighlights = {}
+    
+    for gun, highlight in pairs(ESP.GunHighlights) do
+        highlight:Destroy()
+    end
+    ESP.GunHighlights = {}
+end
 
-local function IsAlive(Player)
+function IsAlive(Player)
     for i, v in pairs(roles) do
         if Player.Name == i then
             return not v.Killed and not v.Dead
@@ -374,92 +642,27 @@ local function IsAlive(Player)
     return false
 end
 
-local function CreateHighlight()
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and not v.Character:FindFirstChild("Highlight") then
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = v.Character
-            highlight.Enabled = ESPEnabled
-        end
-    end
-end
-
-local function UpdateHighlights()
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Highlight") then
-            local Highlight = v.Character:FindFirstChild("Highlight")
-            Highlight.Enabled = ESPEnabled
-            
-            if ESPEnabled then
-                if v.Name == Murder and IsAlive(v) then
-                    Highlight.FillColor = ESP_SETTINGS.COLORS.MURDERER
-                elseif v.Name == Sheriff and IsAlive(v) then
-                    Highlight.FillColor = ESP_SETTINGS.COLORS.SHERIFF
-                elseif v.Name == Hero and IsAlive(v) and (Sheriff == nil or not IsAlive(Players[Sheriff])) then
-                    Highlight.FillColor = ESP_SETTINGS.COLORS.HERO
-                else
-                    Highlight.FillColor = ESP_SETTINGS.COLORS.INNOCENT
-                end
-            end
-        end
-    end
-end
-
---==[ СИСТЕМА СТРЕЛЬБЫ ]==--
-local function shootAtMurderer()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local backpack = LocalPlayer:WaitForChild("Backpack")
-    local gun = backpack:FindFirstChild("Gun") or char:FindFirstChild("Gun")
-
-    if not gun then
-        return "NO_GUN"
-    end
-
-    char:WaitForChild("Humanoid"):EquipTool(gun)
-    task.wait(0.2)
-
-    -- Поиск убийцы
-    local murderer = nil
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local knife = player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
-            if knife then
-                murderer = player
-                break
-            end
-        end
-    end
-
-    if not (murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart")) then
-        return "NO_TARGET"
-    end
-
-    -- Расчет упреждения
-    local targetChar = murderer.Character
-    local targetPos = targetChar.HumanoidRootPart.Position
-    local targetVel = targetChar.HumanoidRootPart.Velocity
-
-    local distance = (targetPos - char.HumanoidRootPart.Position).Magnitude
-    local leadPos = targetPos + (targetVel * (distance / SHOOT_SETTINGS.BULLET_SPEED * SHOOT_SETTINGS.LEAD_MULTIPLIER))
-
-    -- Выстрел
-    local success, err = pcall(function()
-        local gunRemote = workspace:WaitForChild(LocalPlayer.Name):WaitForChild("Gun")
-            :WaitForChild("KnifeLocal"):WaitForChild("CreateBeam"):WaitForChild("RemoteFunction")
-        gunRemote:InvokeServer(1, leadPos, "AH2")
-    end)
-
-    return success and "SUCCESS" or "FAILED"
-end
-
---==[ ОБНОВЛЕНИЕ РОЛЕЙ ]==--
-local function updateRoles()
-    local success, result = pcall(function()
-        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
-    end)
+-- Логика кнопки ESP (после загрузки)
+EspToggle.MouseButton1Click:Connect(function()
+    ESP.Enabled = not ESP.Enabled
+    EspToggle.Text = ESP.Enabled and "ESP [ON]" or "ESP [OFF]"
+    EspToggle.BackgroundColor3 = ESP.Enabled and Color3.fromRGB(40, 180, 40) or Color3.fromRGB(60, 60, 60)
     
-    if success then
-        roles = result
+    if ESP.Enabled then
+        FullESPUpdate()
+    end
+    
+    UpdateHighlights()
+end)
+
+-- Основной цикл ESP (после загрузки)
+local lastRoleUpdate = 0
+RunService.RenderStepped:Connect(function()
+    if LoadingFrame.Visible then return end
+    
+    -- Обновление ролей
+    if tick() - lastRoleUpdate > 1 then
+        roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
         for i, v in pairs(roles) do
             if v.Role == "Murderer" then
                 Murder = i
@@ -469,60 +672,35 @@ local function updateRoles()
                 Hero = i
             end
         end
+        lastRoleUpdate = tick()
     end
-end
-
---==[ ОСНОВНЫЕ ЦИКЛЫ ]==--
-RunService.RenderStepped:Connect(function()
-    updateRoles()
     
-    if ESPEnabled then
-        CreateHighlight()
+    -- Полное обновление ESP каждые 10 секунд
+    if ESP.Enabled and tick() - ESP.LastFullUpdate > 10 then
+        FullESPUpdate()
+    end
+    
+    -- Обработка новых игроков
+    if ESP.Enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if not ESP.PlayerHighlights[player] then
+                CreatePlayerHighlight(player)
+            end
+        end
         UpdateHighlights()
     end
 end)
 
---==[ ОБРАБОТЧИКИ КНОПОК ]==--
--- Auto Get Gun Toggle
-Toggle.MouseButton1Click:Connect(function()
-    AutoGetGun.Enabled = not AutoGetGun.Enabled
-    Toggle.Text = AutoGetGun.Enabled and "Auto Get Gun [ON]" or "Auto Get Gun [OFF]"
-    updateToggleAppearance(Toggle, AutoGetGun.Enabled)
-    
-    if AutoGetGun.Enabled then
-        task.spawn(autoGetGunLoop)
+-- Обработка новых игроков
+Players.PlayerAdded:Connect(function(player)
+    if ESP.Enabled then
+        CreatePlayerHighlight(player)
     end
 end)
 
--- ESP Toggle
-EspToggle.MouseButton1Click:Connect(function()
-    ESPEnabled = not ESPEnabled
-    EspToggle.Text = ESPEnabled and "ESP [ON]" or "ESP [OFF]"
-    updateToggleAppearance(EspToggle, ESPEnabled)
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local highlight = player.Character:FindFirstChild("Highlight")
-            if highlight then
-                highlight.Enabled = ESPEnabled
-            end
-        end
+-- Очистка при выходе
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        ClearAllHighlights()
     end
 end)
-
--- Shoot Button
-ShootButton.MouseButton1Click:Connect(function()
-    -- Анимация нажатия
-    TweenService:Create(ShootButton, TweenInfo.new(0.1), {
-        Size = GUI_STYLE.SHOOT_BUTTON.PRESSED_SIZE,
-        TextTransparency = 0.3
-    }):Play()
-    
-    task.wait(0.1)
-    
-    TweenService:Create(ShootButton, TweenInfo.new(0.1), {
-        Size = GUI_STYLE.SHOOT_BUTTON.SIZE,
-        TextTransparency = 0
-    }):Play()
-
-    -- Выстрел и обработка результата
