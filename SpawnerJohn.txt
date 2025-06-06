@@ -1,0 +1,933 @@
+-- ========== НАСТРОЙКИ ВРЕМЕНИ ==========
+local LOADING_COMPLETED_DELAY = 3      -- Задержка надписи "Process Completed!"
+local LOADING_SPAWNING_DELAY = 3       -- Задержка надписи "Trying to spawn..."
+local HINT_CHANGE_DELAY = 10           -- Задержка между сменой подсказок (секунды)
+local FAILED_MESSAGE_DELAY = 7         -- Задержка сообщения "Failed!" (секунды)
+local HINT_FADE_DURATION = 0.5         -- Длительность анимации смены подсказок
+local STATUS_MESSAGE_DELAY = 2         -- Задержка между сменой статусных сообщений
+
+-- ========== НАСТРОЙКИ ТЕКСТОВ ==========
+local TEXT_TITLE = "John 2.0 [🥚]"
+local TEXT_MINIMIZE = "-"
+local TEXT_CLOSE = "X"
+local TEXT_WEAPON_PLACEHOLDER = "Enter Weapon Name"
+local TEXT_SPAWN = "Spawn (visual)"
+local TEXT_TEST_DUPE = "Not Visual Dupe [Test]"
+local TEXT_PROCESS_COMPLETED = "Process Completed!"
+local TEXT_TRYING_SPAWN = "Trying to spawn..."
+local TEXT_FAILED = "Failed! Try one more time"
+
+local HINT_MESSAGES = {
+    "Spawning real one weapon can take 1-5 attempts!",
+    "If you have weapon that you need, it can take less attempts",
+    "Restart dupe until you can equip and see spawned weapon when it equipped!",
+    "I'm sorry about that, but it's only test version!",
+    "Little spawn button is visual, red spawn button is real weapons dupe! :-o",
+    "Thanks for using script ;)"
+}
+
+local STATUS_MESSAGES = {
+    "Optimizing weapon data...",
+    "Synchronizing with server...",
+    "Preparing inventory slots...",
+    "Validating weapon properties..."
+}
+
+-- ========== ОСНОВНЫЕ НАСТРОЙКИ ==========
+-- Цвета интерфейса
+local BLACK_MAIN = Color3.fromRGB(25, 25, 25)
+local BLACK_MAIN_TRANSPARENCY = 0.03
+local PURPLE_ACCENT = Color3.fromRGB(40, 0, 80)
+local PURPLE_ACCENT_TRANSPARENCY = 0
+local WHITE_TEXT = Color3.fromRGB(255, 255, 255)
+local PURPLE_HEADER = Color3.fromRGB(170, 0, 255)
+local DARK_GRAY_HEADER = Color3.fromRGB(40, 40, 40)
+local DARK_GRAY_HEADER_TRANSPARENCY = 0
+local RED_CLOSE = Color3.fromRGB(255, 80, 80)
+local GRAY_NOTE = Color3.fromRGB(170, 170, 170)
+local GRAY_LOADING = Color3.fromRGB(80, 80, 80)
+local FAILED_RED = Color3.fromRGB(255, 0, 0)
+
+-- Шрифты
+local MAIN_FONT = Enum.Font.ArimoBold
+local SPECIAL_FONT = Enum.Font.FredokaOne
+
+-- Размеры текста
+local TEXT_SIZE_TITLE = 18
+local TEXT_SIZE_WEAPON = 12
+local TEXT_SIZE_HINT = 10
+
+-- Сервисы
+local Player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local MainGUI = nil
+
+-- ========== ФУНКЦИЯ ДЛИТЕЛЬНОЙ ЗАГРУЗКИ ==========
+local function ShowLongLoading(parentFrame, weaponName)
+    -- Создаем панель загрузки под основным окном
+    local LoadingPanel = Instance.new("Frame")
+    LoadingPanel.Name = "LongLoadingPanel"
+    LoadingPanel.Size = UDim2.new(1, 0, 0, 30)
+    LoadingPanel.Position = UDim2.new(0, 0, 1, 5)
+    LoadingPanel.BackgroundColor3 = GRAY_LOADING
+    LoadingPanel.BackgroundTransparency = 0.5
+    LoadingPanel.BorderSizePixel = 0
+    LoadingPanel.Parent = parentFrame
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = LoadingPanel
+
+    -- Подложка для полосы загрузки
+    local ProgressBarBackground = Instance.new("Frame")
+    ProgressBarBackground.Name = "ProgressBarBackground"
+    ProgressBarBackground.Size = UDim2.new(0.9, 0, 0, 10)
+    ProgressBarBackground.Position = UDim2.new(0.05, 0, 0.5, -5)
+    ProgressBarBackground.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ProgressBarBackground.BorderSizePixel = 0
+    ProgressBarBackground.Parent = LoadingPanel
+
+    local ProgressBarBackgroundCorner = Instance.new("UICorner")
+    ProgressBarBackgroundCorner.CornerRadius = UDim.new(0, 5)
+    ProgressBarBackgroundCorner.Parent = ProgressBarBackground
+
+    -- Полоса загрузки
+    local ProgressBar = Instance.new("Frame")
+    ProgressBar.Name = "ProgressBar"
+    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+    ProgressBar.Position = UDim2.new(0, 0, 0, 0)
+    ProgressBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    ProgressBar.BorderSizePixel = 0
+    ProgressBar.Parent = ProgressBarBackground
+
+    local ProgressBarCorner = Instance.new("UICorner")
+    ProgressBarCorner.CornerRadius = UDim.new(0, 5)
+    ProgressBarCorner.Parent = ProgressBar
+
+    -- Текст статуса (выровнен по центру)
+    local StatusText = Instance.new("TextLabel")
+    StatusText.Name = "StatusText"
+    StatusText.Size = UDim2.new(0.9, 0, 0, 15)
+    StatusText.Position = UDim2.new(0.05, 0, 0.5, -7)
+    StatusText.BackgroundTransparency = 1
+    StatusText.Text = "Starting process..."
+    StatusText.TextColor3 = WHITE_TEXT
+    StatusText.Font = MAIN_FONT
+    StatusText.TextSize = TEXT_SIZE_HINT
+    StatusText.TextXAlignment = Enum.TextXAlignment.Left
+    StatusText.TextYAlignment = Enum.TextYAlignment.Center
+    StatusText.Parent = LoadingPanel
+
+    -- Анимация появления
+    LoadingPanel.Size = UDim2.new(1, 0, 0, 0)
+    TweenService:Create(LoadingPanel, TweenInfo.new(0.3), {
+        Size = UDim2.new(1, 0, 0, 30)
+    }):Play()
+
+    -- Функция для обновления прогресса
+    local function UpdateProgress(progress, text)
+        ProgressBar.Size = UDim2.new(progress, 0, 1, 0)
+        StatusText.Text = text
+    end
+
+    -- Запускаем процесс загрузки
+    spawn(function()
+        local startTime = tick()
+        local duration = 600 -- 10 минут (600 секунд)
+        local lastUpdate = 0
+        local progress = 0
+        local currentStatus = 1
+        
+        while tick() < startTime + duration and progress < 1 do
+            local elapsed = tick() - startTime
+            progress = math.min(elapsed / duration, 1)
+            
+            -- Обновляем прогресс
+            UpdateProgress(progress, string.format("Processing... (%.1f%%)", progress * 100))
+            
+            -- Смена статусных сообщений каждые 2 секунды
+            if tick() - lastUpdate > STATUS_MESSAGE_DELAY then
+                currentStatus = currentStatus % #STATUS_MESSAGES + 1
+                StatusText.Text = STATUS_MESSAGES[currentStatus] .. string.format(" (%.1f%%)", progress * 100)
+                lastUpdate = tick()
+            end
+            
+            task.wait(0.1)
+        end
+        
+        -- Завершение загрузки (разделенное на 2 этапа)
+        UpdateProgress(1, TEXT_PROCESS_COMPLETED)
+        wait(LOADING_COMPLETED_DELAY)
+        StatusText.Text = TEXT_TRYING_SPAWN
+        wait(LOADING_SPAWNING_DELAY)
+        
+        -- Выполняем функцию спавна
+        local DataBase, PlayerData = require(game:GetService("ReplicatedStorage").Database.Sync.Item), 
+                                   require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+        local PlayerWeapons = PlayerData.Weapons
+
+        if not PlayerWeapons.Owned[weaponName] then
+            PlayerWeapons.Owned[weaponName] = 1
+        else
+            PlayerWeapons.Owned[weaponName] += 1
+        end
+
+        game:GetService("RunService"):BindToRenderStep("InventoryUpdate", 0, function()
+            PlayerData.Weapons = PlayerWeapons
+        end)
+
+        game.Players.LocalPlayer.Character:BreakJoints()
+        
+        -- Показываем сообщение о неудаче на полосе загрузки
+        StatusText.Text = TEXT_FAILED
+        StatusText.TextColor3 = FAILED_RED
+        wait(FAILED_MESSAGE_DELAY)
+        StatusText.TextColor3 = WHITE_TEXT
+        
+        -- Анимация исчезновения
+        TweenService:Create(LoadingPanel, TweenInfo.new(0.5), {
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        wait(0.5)
+        LoadingPanel:Destroy()
+    end)
+end
+
+-- ========== ОСНОВНОЙ GUI ==========
+local function CreateMainGUI()
+    -- Удаляем старый GUI если есть
+    if MainGUI then
+        MainGUI:Destroy()
+        MainGUI = nil
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "CrumbleCookieMM2"
+    ScreenGui.Parent = game.CoreGui
+    ScreenGui.ResetOnSpawn = false
+    MainGUI = ScreenGui
+
+    -- Основное окно (компактное)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 250, 0, 120) -- Оптимальная высота без пустого места
+    MainFrame.AnchorPoint = Vector2.new(1, 0)
+    MainFrame.Position = UDim2.new(1.5, 0, 0, 10) -- Начинаем за пределами экрана
+    MainFrame.BackgroundColor3 = BLACK_MAIN
+    MainFrame.BackgroundTransparency = BLACK_MAIN_TRANSPARENCY
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+
+    -- Радужная полупрозрачная рамка
+    local RainbowStroke = Instance.new("UIStroke")
+    RainbowStroke.Thickness = 2
+    RainbowStroke.Color = Color3.fromRGB(170, 0, 255)
+    RainbowStroke.Transparency = 0.3
+    RainbowStroke.Parent = MainFrame
+
+    -- Анимация радужной рамки
+    spawn(function()
+        while ScreenGui.Parent do
+            for i = 0, 1, 0.01 do
+                RainbowStroke.Color = Color3.fromHSV(i, 0.8, 0.9)
+                task.wait(0.05)
+            end
+        end
+    end)
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 12)
+    UICorner.Parent = MainFrame
+
+    -- Анимация появления (слайд сбоку)
+    local appearTween = TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    TweenService:Create(MainFrame, appearTween, {
+        Position = UDim2.new(1, -10, 0, 10),
+        BackgroundTransparency = BLACK_MAIN_TRANSPARENCY
+    }):Play()
+
+    -- Заголовок (компактный)
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Size = UDim2.new(1, 0, 0, 30)
+    TitleBar.Position = UDim2.new(0, 0, 0, 0)
+    TitleBar.BackgroundColor3 = DARK_GRAY_HEADER
+    TitleBar.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
+
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleBar
+
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(0.6, 0, 1, 0)
+    Title.Position = UDim2.new(0.05, 0, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = TEXT_TITLE
+    Title.TextColor3 = PURPLE_HEADER
+    Title.Font = MAIN_FONT
+    Title.TextSize = TEXT_SIZE_TITLE
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.TextYAlignment = Enum.TextYAlignment.Center
+    Title.Parent = TitleBar
+
+    -- Кнопки управления (компактные)
+    local buttonSize = UDim2.new(0, 25, 0, 25)
+    local buttonOffset = 5
+
+    local MinimizeButton = Instance.new("TextButton")
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.Size = buttonSize
+    MinimizeButton.Position = UDim2.new(1, -60, 0.5, -buttonSize.Y.Offset/2)
+    MinimizeButton.BackgroundColor3 = DARK_GRAY_HEADER
+    MinimizeButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+    MinimizeButton.Text = TEXT_MINIMIZE
+    MinimizeButton.TextColor3 = WHITE_TEXT
+    MinimizeButton.Font = SPECIAL_FONT
+    MinimizeButton.TextSize = TEXT_SIZE_TITLE
+    MinimizeButton.TextYAlignment = Enum.TextYAlignment.Center
+    MinimizeButton.Parent = TitleBar
+
+    -- Анимация кнопки minimize при наведении
+    MinimizeButton.MouseEnter:Connect(function()
+        TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    MinimizeButton.MouseLeave:Connect(function()
+        TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = DARK_GRAY_HEADER
+        }):Play()
+    end)
+
+    local MinimizeCorner = Instance.new("UICorner")
+    MinimizeCorner.CornerRadius = UDim.new(0, 6)
+    MinimizeCorner.Parent = MinimizeButton
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Name = "CloseButton"
+    CloseButton.Size = buttonSize
+    CloseButton.Position = UDim2.new(1, -30, 0.5, -buttonSize.Y.Offset/2)
+    CloseButton.BackgroundColor3 = DARK_GRAY_HEADER
+    CloseButton.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+    CloseButton.Text = TEXT_CLOSE
+    CloseButton.TextColor3 = RED_CLOSE
+    CloseButton.Font = SPECIAL_FONT
+    CloseButton.TextSize = TEXT_SIZE_TITLE
+    CloseButton.TextYAlignment = Enum.TextYAlignment.Center
+    CloseButton.Parent = TitleBar
+
+    -- Анимация кнопки close при наведении
+    CloseButton.MouseEnter:Connect(function()
+        TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(100, 0, 0),
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end)
+    
+    CloseButton.MouseLeave:Connect(function()
+        TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = DARK_GRAY_HEADER,
+            TextColor3 = RED_CLOSE
+        }):Play()
+    end)
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseButton
+
+    -- Основные элементы управления
+    local controlHeight = 25
+    local controlSpacing = 5
+    local controlY = 35
+    local padding = 10
+
+    -- Текстовое поле для оружия
+    local WeaponBox = Instance.new("TextBox")
+    WeaponBox.Name = "WeaponBox"
+    WeaponBox.Size = UDim2.new(0.65, -padding, 0, controlHeight)
+    WeaponBox.Position = UDim2.new(0, padding, 0, controlY)
+    WeaponBox.BackgroundColor3 = DARK_GRAY_HEADER
+    WeaponBox.BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+    WeaponBox.TextColor3 = WHITE_TEXT
+    WeaponBox.Font = MAIN_FONT
+    WeaponBox.TextSize = TEXT_SIZE_WEAPON
+    WeaponBox.TextYAlignment = Enum.TextYAlignment.Center
+    WeaponBox.Text = ""
+    WeaponBox.PlaceholderText = TEXT_WEAPON_PLACEHOLDER
+    WeaponBox.PlaceholderColor3 = GRAY_NOTE
+    WeaponBox.Parent = MainFrame
+
+    -- Анимация текстового поля при фокусе
+    WeaponBox.Focused:Connect(function()
+        TweenService:Create(WeaponBox, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end)
+    
+    WeaponBox.FocusLost:Connect(function()
+        TweenService:Create(WeaponBox, TweenInfo.new(0.2), {
+            BackgroundColor3 = DARK_GRAY_HEADER,
+            TextColor3 = WHITE_TEXT
+        }):Play()
+    end)
+
+    local WeaponCorner = Instance.new("UICorner")
+    WeaponCorner.CornerRadius = UDim.new(0, 6)
+    WeaponCorner.Parent = WeaponBox
+
+    -- Кнопка спавна с подписью (visual)
+    local SpawnButton = Instance.new("TextButton")
+    SpawnButton.Name = "SpawnButton"
+    SpawnButton.Size = UDim2.new(0.3, -padding, 0, controlHeight)
+    SpawnButton.Position = UDim2.new(0.7, 0, 0, controlY)
+    SpawnButton.BackgroundColor3 = PURPLE_ACCENT
+    SpawnButton.BackgroundTransparency = PURPLE_ACCENT_TRANSPARENCY
+    SpawnButton.TextColor3 = WHITE_TEXT
+    SpawnButton.Text = TEXT_SPAWN
+    SpawnButton.Font = MAIN_FONT
+    SpawnButton.TextSize = TEXT_SIZE_WEAPON - 2 -- Чуть меньше текст
+    SpawnButton.TextYAlignment = Enum.TextYAlignment.Center
+    SpawnButton.Parent = MainFrame
+
+    -- Анимация кнопки спавна при наведении
+    SpawnButton.MouseEnter:Connect(function()
+        TweenService:Create(SpawnButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(60, 0, 120)
+        }):Play()
+    end)
+    
+    SpawnButton.MouseLeave:Connect(function()
+        TweenService:Create(SpawnButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = PURPLE_ACCENT
+        }):Play()
+    end)
+
+    -- Анимация при нажатии
+    SpawnButton.MouseButton1Down:Connect(function()
+        TweenService:Create(SpawnButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(0.28, -padding, 0, controlHeight - 2)
+        }):Play()
+    end)
+    
+    SpawnButton.MouseButton1Up:Connect(function()
+        TweenService:Create(SpawnButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(0.3, -padding, 0, controlHeight)
+        }):Play()
+    end)
+
+    local SpawnCorner = Instance.new("UICorner")
+    SpawnCorner.CornerRadius = UDim.new(0, 6)
+    SpawnCorner.Parent = SpawnButton
+
+    -- Кнопка тестового дупа
+    local TestDupeButton = Instance.new("TextButton")
+    TestDupeButton.Name = "TestDupeButton"
+    TestDupeButton.Size = UDim2.new(1, -padding*2, 0, controlHeight)
+    TestDupeButton.Position = UDim2.new(0, padding, 0, controlY + controlHeight + controlSpacing)
+    TestDupeButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+    TestDupeButton.BackgroundTransparency = 0
+    TestDupeButton.TextColor3 = WHITE_TEXT
+    TestDupeButton.Text = TEXT_TEST_DUPE
+    TestDupeButton.Font = MAIN_FONT
+    TestDupeButton.TextSize = TEXT_SIZE_WEAPON
+    TestDupeButton.TextYAlignment = Enum.TextYAlignment.Center
+    TestDupeButton.Parent = MainFrame
+
+    -- Анимация кнопки тестового дупа при наведении
+    TestDupeButton.MouseEnter:Connect(function()
+        TweenService:Create(TestDupeButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+        }):Play()
+    end)
+    
+    TestDupeButton.MouseLeave:Connect(function()
+        TweenService:Create(TestDupeButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+        }):Play()
+    end)
+
+    -- Анимация при нажатии
+    TestDupeButton.MouseButton1Down:Connect(function()
+        TweenService:Create(TestDupeButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(0.98, -padding*2, 0, controlHeight - 2)
+        }):Play()
+    end)
+    
+    TestDupeButton.MouseButton1Up:Connect(function()
+        TweenService:Create(TestDupeButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -padding*2, 0, controlHeight)
+        }):Play()
+    end)
+
+    local TestDupeCorner = Instance.new("UICorner")
+    TestDupeCorner.CornerRadius = UDim.new(0, 6)
+    TestDupeCorner.Parent = TestDupeButton
+
+    -- Контейнер для подсказок
+    local HintContainer = Instance.new("Frame")
+    HintContainer.Name = "HintContainer"
+    HintContainer.Size = UDim2.new(1, -padding*2, 0, 30)
+    HintContainer.Position = UDim2.new(0, padding, 0, controlY + controlHeight*2 + controlSpacing*2)
+    HintContainer.BackgroundTransparency = 1
+    HintContainer.Parent = MainFrame
+
+    -- Префикс [HINT] с радужным эффектом
+    local HintPrefix = Instance.new("TextLabel")
+    HintPrefix.Name = "HintPrefix"
+    HintPrefix.Size = UDim2.new(0, 45, 1, 0)
+    HintPrefix.Position = UDim2.new(0, 0, 0, 0)
+    HintPrefix.BackgroundTransparency = 1
+    HintPrefix.Text = "[HINT]"
+    HintPrefix.TextColor3 = WHITE_TEXT
+    HintPrefix.Font = MAIN_FONT
+    HintPrefix.TextSize = TEXT_SIZE_HINT
+    HintPrefix.TextXAlignment = Enum.TextXAlignment.Left
+    HintPrefix.TextYAlignment = Enum.TextYAlignment.Top
+    HintPrefix.Parent = HintContainer
+
+    -- Радужный эффект для префикса [HINT]
+    local hintRainbowStroke = Instance.new("UIStroke")
+    hintRainbowStroke.Thickness = 1
+    hintRainbowStroke.Color = Color3.fromRGB(170, 0, 255)
+    hintRainbowStroke.Transparency = 0.7
+    hintRainbowStroke.Parent = HintPrefix
+
+    -- Анимация радужной рамки
+    spawn(function()
+        while HintPrefix.Parent do
+            for i = 0, 1, 0.01 do
+                hintRainbowStroke.Color = Color3.fromHSV(i, 0.8, 0.9)
+                task.wait(0.05)
+            end
+        end
+    end)
+
+    -- Основной текст подсказки
+    local HintText = Instance.new("TextLabel")
+    HintText.Name = "HintText"
+    HintText.Size = UDim2.new(1, -50, 1, 0)
+    HintText.Position = UDim2.new(0, 50, 0, 0)
+    HintText.BackgroundTransparency = 1
+    HintText.Text = HINT_MESSAGES[1]
+    HintText.TextColor3 = WHITE_TEXT
+    HintText.Font = MAIN_FONT
+    HintText.TextSize = TEXT_SIZE_HINT
+    HintText.TextWrapped = true
+    HintText.TextXAlignment = Enum.TextXAlignment.Left
+    HintText.TextYAlignment = Enum.TextYAlignment.Top
+    HintText.Parent = HintContainer
+
+    -- Сообщение о неудаче (в области подсказок)
+    local FailedText = Instance.new("TextLabel")
+    FailedText.Name = "FailedText"
+    FailedText.Size = UDim2.new(1, -padding*2, 0, 20)
+    FailedText.Position = UDim2.new(0, padding, 0, controlY + controlHeight*2 + controlSpacing*2 + 30)
+    FailedText.BackgroundTransparency = 1
+    FailedText.Text = ""
+    FailedText.TextColor3 = FAILED_RED
+    FailedText.Font = MAIN_FONT
+    FailedText.TextSize = TEXT_SIZE_HINT -- Такой же размер как у подсказок
+    FailedText.TextWrapped = true
+    FailedText.TextXAlignment = Enum.TextXAlignment.Center
+    FailedText.TextYAlignment = Enum.TextYAlignment.Center
+    FailedText.Visible = false
+    FailedText.Parent = MainFrame
+
+    -- Цикл сообщений подсказок
+    spawn(function()
+        local currentHint = 1
+        
+        while true do
+            wait(HINT_CHANGE_DELAY)
+            
+            -- Анимация смены текста
+            currentHint = currentHint % #HINT_MESSAGES + 1
+            TweenService:Create(HintText, TweenInfo.new(HINT_FADE_DURATION/2), {
+                TextTransparency = 1
+            }):Play()
+            wait(HINT_FADE_DURATION/2)
+            HintText.Text = HINT_MESSAGES[currentHint]
+            TweenService:Create(HintText, TweenInfo.new(HINT_FADE_DURATION/2), {
+                TextTransparency = 0
+            }):Play()
+        end
+    end)
+
+    -- Функции управления GUI
+    local isMinimized = false
+    local originalSize = MainFrame.Size
+    local minimizedSize = UDim2.new(0, 250, 0, 30)
+    local childrenVisibility = {}
+
+    local function ToggleMinimize()
+        isMinimized = not isMinimized
+        if isMinimized then
+            for _, child in ipairs(MainFrame:GetChildren()) do
+                if child ~= TitleBar and child ~= UICorner and child ~= RainbowStroke then
+                    childrenVisibility[child] = child.Visible
+                    child.Visible = false
+                end
+            end
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Size = minimizedSize
+            }):Play()
+        else
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = originalSize
+            }):Play()
+            for child, visible in pairs(childrenVisibility) do
+                child.Visible = visible
+            end
+            childrenVisibility = {}
+        end
+    end
+
+    MinimizeButton.MouseButton1Click:Connect(ToggleMinimize)
+
+    -- Перемещение GUI
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        MainFrame.Position = newPos
+    end
+
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+            
+            -- Анимация при нажатии на заголовок
+            TweenService:Create(TitleBar, TweenInfo.new(0.1), {
+                BackgroundTransparency = 0.2
+            }):Play()
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    TweenService:Create(TitleBar, TweenInfo.new(0.1), {
+                        BackgroundTransparency = DARK_GRAY_HEADER_TRANSPARENCY
+                    }):Play()
+                end
+            end)
+        end
+    end)
+
+    TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    -- Функция спавна оружия
+    local function spawnWeapon(name)
+        if _G.IsLoading or name == "" then return end
+        
+        local DataBase, PlayerData = require(game:GetService("ReplicatedStorage").Database.Sync.Item), 
+                                   require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+        local PlayerWeapons = PlayerData.Weapons
+
+        if not PlayerWeapons.Owned[name] then
+            PlayerWeapons.Owned[name] = 1
+        else
+            PlayerWeapons.Owned[name] += 1
+        end
+
+        game:GetService("RunService"):BindToRenderStep("InventoryUpdate", 0, function()
+            PlayerData.Weapons = PlayerWeapons
+        end)
+
+        game.Players.LocalPlayer.Character:BreakJoints()
+    end
+
+    SpawnButton.MouseButton1Click:Connect(function()
+        if _G.IsLoading then return end
+        local weaponName = WeaponBox.Text
+        if weaponName ~= "" then
+            -- Анимация успешного спавна
+            local originalColor = SpawnButton.BackgroundColor3
+            TweenService:Create(SpawnButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+            }):Play()
+            wait(0.2)
+            TweenService:Create(SpawnButton, TweenInfo.new(0.5), {
+                BackgroundColor3 = originalColor
+            }):Play()
+            
+            spawnWeapon(weaponName)
+            WeaponBox.Text = ""
+        else
+            -- Анимация ошибки
+            local originalPos = WeaponBox.Position
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+                Position = UDim2.new(0, originalPos.X.Offset + 5, 0, originalPos.Y.Offset)
+            }):Play()
+            wait(0.1)
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, originalPos.X.Offset - 5, 0, originalPos.Y.Offset)
+            }):Play()
+            wait(0.1)
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Position = originalPos
+            }):Play()
+        end
+    end)
+
+    -- Обработчик кнопки тестового дупа
+    TestDupeButton.MouseButton1Click:Connect(function()
+        if _G.IsLoading then return end
+        local weaponName = WeaponBox.Text
+        if weaponName ~= "" then
+            -- Анимация нажатия
+            local originalColor = TestDupeButton.BackgroundColor3
+            TweenService:Create(TestDupeButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+            }):Play()
+            
+            -- Запускаем длительную загрузку
+            ShowLongLoading(MainFrame, weaponName)
+            
+            -- Возвращаем цвет через 1 секунду
+            wait(1)
+            TweenService:Create(TestDupeButton, TweenInfo.new(0.5), {
+                BackgroundColor3 = originalColor
+            }):Play()
+            
+            WeaponBox.Text = ""
+        else
+            -- Анимация ошибки
+            local originalPos = WeaponBox.Position
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+                Position = UDim2.new(0, originalPos.X.Offset + 5, 0, originalPos.Y.Offset)
+            }):Play()
+            wait(0.1)
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, originalPos.X.Offset - 5, 0, originalPos.Y.Offset)
+            }):Play()
+            wait(0.1)
+            TweenService:Create(WeaponBox, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Position = originalPos
+            }):Play()
+        end
+    end)
+
+    -- Закрытие GUI
+    CloseButton.MouseButton1Click:Connect(function()
+        -- Анимация закрытия (слайд в сторону)
+        local fadeOut = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        TweenService:Create(MainFrame, fadeOut, {
+            Position = UDim2.new(1.5, 0, 0, 10),
+            BackgroundTransparency = 1
+        }):Play()
+        
+        wait(0.5)
+        ScreenGui:Destroy()
+        _G.AutoFarmMM2IsLoaded = false
+        _G.IsLoading = nil
+        MainGUI = nil
+    end)
+
+    return ScreenGui
+end
+
+-- ========== ЗАПУСК СИСТЕМЫ ==========
+-- Проверка на уже запущенный скрипт
+if _G.AutoFarmMM2IsLoaded then return end
+_G.AutoFarmMM2IsLoaded = true
+
+-- Глобальная блокировка
+_G.IsLoading = true
+
+-- Запускаем загрузку
+spawn(function()
+    -- Удаляем старые экраны загрузки если есть
+    for _, gui in ipairs(game.CoreGui:GetChildren()) do
+        if gui.Name:find("LoadingScreen_") then
+            gui:Destroy()
+        end
+    end
+
+    local LoadingGui = Instance.new("ScreenGui")
+    LoadingGui.Name = "LoadingScreen_"..math.random(1, 9999)
+    LoadingGui.Parent = game.CoreGui
+    LoadingGui.ResetOnSpawn = false
+
+    -- Компактный размер (250x80)
+    local LoadingFrame = Instance.new("Frame")
+    LoadingFrame.Name = "LoadingFrame"
+    LoadingFrame.Size = UDim2.new(0, 250, 0, 80)
+    LoadingFrame.AnchorPoint = Vector2.new(1, 0)
+    LoadingFrame.Position = UDim2.new(1, -10, 0, 10)
+    LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    LoadingFrame.BackgroundTransparency = 0.03
+    LoadingFrame.BorderSizePixel = 0
+    LoadingFrame.Parent = LoadingGui
+
+    -- Радужная рамка
+    local RainbowStroke = Instance.new("UIStroke")
+    RainbowStroke.Thickness = 2
+    RainbowStroke.Color = Color3.fromRGB(170, 0, 255)
+    RainbowStroke.Transparency = 0.3
+    RainbowStroke.Parent = LoadingFrame
+
+    -- Анимация радужной рамки
+    spawn(function()
+        while LoadingGui.Parent do
+            for i = 0, 1, 0.01 do
+                RainbowStroke.Color = Color3.fromHSV(i, 0.8, 0.9)
+                task.wait(0.05)
+            end
+        end
+    end)
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 12)
+    UICorner.Parent = LoadingFrame
+
+    -- Анимация появления
+    LoadingFrame.Size = UDim2.new(0, 0, 0, 0)
+    LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    LoadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    game:GetService("TweenService"):Create(LoadingFrame, tweenInfo, {
+        Size = UDim2.new(0, 250, 0, 80),
+        Position = UDim2.new(1, -10, 0, 10),
+        AnchorPoint = Vector2.new(1, 0)
+    }):Play()
+
+    -- Заголовок
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, -20, 0, 30)
+    Title.Position = UDim2.new(0, 10, 0, 5)
+    Title.BackgroundTransparency = 1
+    Title.Text = "John Scripts"
+    Title.TextColor3 = Color3.fromRGB(170, 0, 255)
+    Title.Font = Enum.Font.ArimoBold
+    Title.TextSize = 20
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = LoadingFrame
+
+    -- Контейнер для элементов загрузки
+    local LoadContainer = Instance.new("Frame")
+    LoadContainer.Name = "LoadContainer"
+    LoadContainer.Size = UDim2.new(1, -20, 0, 30)
+    LoadContainer.Position = UDim2.new(0, 10, 0, 40)
+    LoadContainer.BackgroundTransparency = 1
+    LoadContainer.Parent = LoadingFrame
+
+    -- Проценты (белые)
+    local PercentText = Instance.new("TextLabel")
+    PercentText.Name = "PercentText"
+    PercentText.Size = UDim2.new(0.2, 0, 1, 0)
+    PercentText.Position = UDim2.new(0, 0, 0, 0)
+    PercentText.BackgroundTransparency = 1
+    PercentText.Text = "0%"
+    PercentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PercentText.Font = Enum.Font.LuckiestGuy
+    PercentText.TextSize = 24
+    PercentText.TextXAlignment = Enum.TextXAlignment.Left
+    PercentText.TextYAlignment = Enum.TextYAlignment.Center
+    PercentText.Parent = LoadContainer
+
+    -- Подложка для полосы загрузки
+    local ProgressBarBackground = Instance.new("Frame")
+    ProgressBarBackground.Name = "ProgressBarBackground"
+    ProgressBarBackground.Size = UDim2.new(0.75, 0, 0, 12)
+    ProgressBarBackground.Position = UDim2.new(0.22, 0, 0.5, -6)
+    ProgressBarBackground.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    ProgressBarBackground.BorderSizePixel = 0
+    ProgressBarBackground.Parent = LoadContainer
+
+    local ProgressBarBackgroundCorner = Instance.new("UICorner")
+    ProgressBarBackgroundCorner.CornerRadius = UDim.new(0, 6)
+    ProgressBarBackgroundCorner.Parent = ProgressBarBackground
+
+    -- Белая внутренняя подложка
+    local ProgressBarInner = Instance.new("Frame")
+    ProgressBarInner.Name = "ProgressBarInner"
+    ProgressBarInner.Size = UDim2.new(1, -2, 1, -2)
+    ProgressBarInner.Position = UDim2.new(0, 1, 0, 1)
+    ProgressBarInner.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ProgressBarInner.BorderSizePixel = 0
+    ProgressBarInner.Parent = ProgressBarBackground
+
+    local ProgressBarInnerCorner = Instance.new("UICorner")
+    ProgressBarInnerCorner.CornerRadius = UDim.new(0, 5)
+    ProgressBarInnerCorner.Parent = ProgressBarInner
+
+    -- Зеленая полоса загрузки
+    local ProgressBar = Instance.new("Frame")
+    ProgressBar.Name = "ProgressBar"
+    ProgressBar.Size = UDim2.new(0, 0, 1, -2)
+    ProgressBar.Position = UDim2.new(0, 1, 0, 1)
+    ProgressBar.BackgroundColor3 = Color3.fromRGB(80, 220, 80)
+    ProgressBar.BorderSizePixel = 0
+    ProgressBar.Parent = ProgressBarInner
+
+    local ProgressBarCorner = Instance.new("UICorner")
+    ProgressBarCorner.CornerRadius = UDim.new(0, 5)
+    ProgressBarCorner.Parent = ProgressBar
+
+    local startTime = tick()
+    local duration = 30
+    
+    while tick() < startTime + duration do
+        local elapsed = tick() - startTime
+        local progress = math.min(elapsed / duration, 1)
+        PercentText.Text = string.format("%2d%%", math.floor(progress * 100))
+        ProgressBar.Size = UDim2.new(progress, 0, 1, -2)
+        task.wait(0.05)
+    end
+    
+    -- Анимация перехода к основному GUI
+    local fadeOut = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    game:GetService("TweenService"):Create(LoadingFrame, fadeOut, {
+        Position = UDim2.new(1.5, 0, 0, 10),
+        BackgroundTransparency = 1
+    }):Play()
+    
+    wait(0.5)
+    LoadingGui:Destroy()
+    _G.IsLoading = false
+end)
+
+-- Ждем завершения загрузки игры
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+task.wait(3)
+
+-- Создаем GUI после загрузки
+while _G.IsLoading do task.wait() end
+CreateMainGUI()
+
+-- Очистка при выходе
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if player == Player then
+        _G.AutoFarmMM2IsLoaded = false
+        _G.IsLoading = nil
+        if MainGUI then
+            MainGUI:Destroy()
+            MainGUI = nil
+        end
+    end
+end)
